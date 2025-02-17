@@ -1,4 +1,4 @@
-import { fetchUserPods, fetchPodMembers } from '$lib/client/api';
+import { fetchUserPods, fetchPodMembers } from '$lib/utils/api';
 
 export async function load({ url }) {
     const userId = url.searchParams.get('userId');
