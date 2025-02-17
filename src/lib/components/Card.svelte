@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { fetchCard } from '$lib/server/scryfall';
+  import { fetchCard } from '$lib/utils/scryfall';
 
   interface Card {
     name: string;
