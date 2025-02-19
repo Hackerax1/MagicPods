@@ -1,11 +1,17 @@
 <script>
   import LoginModal from '../lib/components/LoginModal.svelte';
   import RegisterModal from '../lib/components/RegisterModal.svelte';
+  import { onMount } from 'svelte';
   
-  let showModal = false;
+  let showLoginModal = false;
+  let showRegisterModal = false;
 
-  function toggleModal() {
-    showModal = !showModal;
+  function toggleLoginModal() {
+    showLoginModal = !showLoginModal;
+  }
+
+  function toggleRegisterModal() {
+    showRegisterModal = !showRegisterModal;
   }
 </script>
 
@@ -13,13 +19,13 @@
 
 <nav>
   <ul style="display: flex; justify-content: center; list-style-type: none; padding: 0;">
-    <li style="margin: 0 10px;"><button class="nav-button" on:click={toggleModal}>Register</button></li>
-    <li style="margin: 0 10px;"><button class="nav-button" on:click={toggleModal}>Login</button></li>
+    <li style="margin: 0 10px;"><button class="nav-button" on:click={toggleRegisterModal}>Register</button></li>
+    <li style="margin: 0 10px;"><button class="nav-button" on:click={toggleLoginModal}>Login</button></li>
   </ul>
 </nav>
 
-<LoginModal onClose={toggleModal} showModal={showModal} />
-<RegisterModal onClose={toggleModal} showModal={showModal} />
+<LoginModal onClose={toggleLoginModal} showModal={showLoginModal} />
+<RegisterModal onClose={toggleRegisterModal} showModal={showRegisterModal} />
 
 <style>
   :global(body) {
