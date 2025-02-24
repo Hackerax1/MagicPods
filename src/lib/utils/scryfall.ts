@@ -1,6 +1,11 @@
 import fetch from 'node-fetch';
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const SCRYFALL_BULK_DATA_URL = 'https://api.scryfall.com/bulk-data';
 const SCRYFALL_SEARCH_URL = 'https://api.scryfall.com/cards/search';
@@ -63,4 +68,4 @@ export async function fetchCard(cardName: string) {
 }
 
 // Run the update process (you can schedule this or run it manually)
-updateBulkData().catch(console.error);
+// updateBulkData().catch(console.error);

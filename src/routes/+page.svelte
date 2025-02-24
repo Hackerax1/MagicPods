@@ -1,17 +1,17 @@
 <script>
-  import LoginModal from '../lib/components/LoginModal.svelte';
-  import RegisterModal from '../lib/components/RegisterModal.svelte';
+  import Login from '../lib/components/Login.svelte';
+  import Register from '../lib/components/Register.svelte';
 </script>
 
 <h1>Welcome to MagicPods</h1>
 
 <div class="container">
   <div class="form-container">
-    <RegisterModal showModal={true} onClose={() => { /* handle close */ }} />
+    <Register />
   </div>
   <div class="separator"></div>
   <div class="form-container">
-    <LoginModal showModal={true} onClose={() => { /* handle close */ }} />
+    <Login />
   </div>
 </div>
 
