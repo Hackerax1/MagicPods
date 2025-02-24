@@ -43,6 +43,7 @@
 		"@oslojs/encoding": "^1.1.0",
 		"bcrypt": "^5.1.1",
 		"bcryptjs": "^2.4.3",
+		"csv-parser": "^3.2.0",
 		"drizzle-orm": "^0.38.4",
 		"postgres": "^3.4.5",
 		"uuid": "^11.0.5"

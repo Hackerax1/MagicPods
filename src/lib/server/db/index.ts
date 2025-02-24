@@ -49,7 +49,20 @@ export async function addCardToDeck(deckId: string, cardName: string) {
 	const newCard = {
 		id: cardId,
 		name: cardName,
-		deckId
+		deckId,
+		userId: '' // Add the appropriate userId value here
+	};
+	await db.insert(schema.card).values(newCard);
+	return newCard;
+}
+
+export async function addCardToUserCollection(userId: string, card: any) {
+	const cardId = uuidv4();
+	const newCard = {
+		id: cardId,
+		name: card.name,
+		userId,
+		deckId: '' // Add the appropriate deckId value here
 	};
 	await db.insert(schema.card).values(newCard);
 	return newCard;
@@ -127,4 +140,12 @@ export async function loginUser(username: string, password: string) {
 			)
 		);
 	return user;
+}
+
+export async function fetchPodDetails(podId: string) {
+	const podDetails = await db
+		.select()
+		.from(schema.pod)
+		.where(eq(schema.pod.id, podId));
+	return podDetails;
 }

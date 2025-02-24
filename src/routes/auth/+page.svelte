@@ -42,6 +42,12 @@
       <a href="/auth/pods" class="nav-link">View Your Pods</a>
       <a href="/auth/decks" class="nav-link">View Your Decks</a>
     </div>
+    <div class="grid-container">
+      <a href="/auth/decks" class="grid-item">View Your Decks</a>
+      <a href="/auth/pods" class="grid-item">View Your Pods</a>
+      <a href="/auth/collection" class="grid-item">View Your Collection</a>
+      <a href="/auth/trades" class="grid-item">View Your Trades</a>
+    </div>
   </div>
 {:else}
   <p>Please log in to view your profile.</p>
@@ -108,5 +114,29 @@
 
   .nav-link:hover {
     background-color: #0056b3;
+  }
+
+  .grid-container {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    margin-top: 24px;
+  }
+
+  .grid-item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background-color: #f8f9fa;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    text-decoration: none;
+    color: #333;
+    transition: background-color 0.2s;
+  }
+
+  .grid-item:hover {
+    background-color: #e2e6ea;
   }
 </style>

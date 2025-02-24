@@ -36,6 +36,9 @@ export const deck = pgTable('deck', {
 export const card = pgTable('card', {
 	id: text('id').primaryKey(),
 	name: text('name').notNull(),
+	userId: text('user_id')
+		.notNull()
+		.references(() => user.id),
 	deckId: text('deck_id')
 		.notNull()
 		.references(() => deck.id)

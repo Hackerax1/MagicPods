@@ -17,8 +17,9 @@
       console.log('Register response:', result);
       if (!response.ok) {
         alert('Failed to register user.');
+        return;
       } else {
-        alert('User registered successfully!');
+        // alert('User registered successfully!');
         onClose();
       }
     } catch (error) {
@@ -55,10 +56,7 @@
 {/if}
 
 <style>
-  .modal-content {
-    max-height: 80vh;
-    overflow-y: auto;
-  }
+
 </style>
 
 
