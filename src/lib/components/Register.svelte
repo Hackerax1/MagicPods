@@ -1,4 +1,6 @@
 <script lang='ts'>
+  import { goto } from '$app/navigation';
+
   let email = '';
   let password = '';
   let username = '';
@@ -13,14 +15,13 @@
       const result = await response.json();
       console.log('Register response:', result);
       if (!response.ok) {
-        alert('Failed to register user.');
+        console.error('Failed to register user.');
         return;
       } else {
-        alert('User registered successfully!');
+        goto('/auth');
       }
     } catch (error) {
       console.error('Registration error:', error);
-      alert('Failed to register user.');
     }
   };
 </script>

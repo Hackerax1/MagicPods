@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { goto } from '$app/navigation';
+
   let identifier = '';
   let password = '';
 
@@ -11,13 +13,12 @@
       });
       const result = await response.json();
       if (!response.ok) {
-        alert('Login failed: Invalid credentials.');
+        console.error('Login failed: Invalid credentials.');
       } else {
-        alert('Login successful!');
+        goto('/auth');
       }
     } catch (error) {
       console.error('Login error:', error);
-      alert('Failed to login.');
     }
   };
 </script>
