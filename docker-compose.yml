@@ -8,3 +8,9 @@ services:
       POSTGRES_USER: root
       POSTGRES_PASSWORD: mysecretpassword
       POSTGRES_DB: local
+  card_scanner:
+    build: ./card_scanner
+    ports:
+      - "5000:5000"
+    depends_on:
+      - db

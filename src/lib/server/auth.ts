@@ -114,11 +114,11 @@ export async function login(identifier: string, password: string) {
 	if (!isPasswordValid) {
 		throw new Error('Invalid password');
 	}
-	const newSession = {
-		id: uuidv4(),
-		userId: foundUser.id,
-		expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24) // 1 day
-	};
-	await db.insert(session).values(newSession);
-	return { user: foundUser, session: newSession };
+	
+	// Generate a session token
+	const token = generateSessionToken();
+	// Create the session using that token
+	const newSession = await createSession(token, foundUser.id);
+	
+	return { user: foundUser, session: newSession, token };
 }

@@ -1,5 +1,5 @@
 <script context="module" lang="ts">
-  import { getDecks } from '../../../lib/api/decks'; // Ensure this is a client-side import
+  import { getDecks } from '$lib/client/api'; // Ensure this is a client-side import
 
   export async function load() {
     const decks = await getDecks();

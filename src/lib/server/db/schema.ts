@@ -54,9 +54,56 @@ export const podMembership = pgTable('pod_membership', {
 		.references(() => user.id)
 });
 
+export const userCard = pgTable('user_card', {
+	id: text('id').primaryKey(),
+	userId: text('user_id')
+		.notNull()
+		.references(() => user.id),
+	cardId: text('card_id')
+		.notNull()
+		.references(() => card.id),
+	quantity: integer('quantity').notNull(),
+	condition: text('condition').notNull()
+});
+
+export const trade = pgTable('trade', {
+	id: text('id').primaryKey(),
+	podId: text('pod_id')
+		.notNull()
+		.references(() => pod.id),
+	status: text('status').notNull(),
+	createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull(),
+	updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).notNull()
+});
+
+export const tradeParticipant = pgTable('trade_participant', {
+	id: text('id').primaryKey(),
+	tradeId: text('trade_id')
+		.notNull()
+		.references(() => trade.id),
+	userId: text('user_id')
+		.notNull()
+		.references(() => user.id)
+});
+
+export const tradeItem = pgTable('trade_item', {
+	id: text('id').primaryKey(),
+	tradeId: text('trade_id')
+		.notNull()
+		.references(() => trade.id),
+	userCardId: text('user_card_id')
+		.notNull()
+		.references(() => userCard.id),
+	quantity: integer('quantity').notNull()
+});
+
 export type Session = typeof session.$inferSelect;
 export type User = typeof user.$inferSelect;
 export type Pod = typeof pod.$inferSelect;
 export type Deck = typeof deck.$inferSelect;
 export type Card = typeof card.$inferSelect;
 export type PodMembership = typeof podMembership.$inferSelect;
+export type UserCard = typeof userCard.$inferSelect;
+export type Trade = typeof trade.$inferSelect;
+export type TradeParticipant = typeof tradeParticipant.$inferSelect;
+export type TradeItem = typeof tradeItem.$inferSelect;
