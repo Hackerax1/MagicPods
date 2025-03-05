@@ -12,21 +12,25 @@
     loading = true;
     
     try {
-      const response = await fetch('/api/login', {
+      const response = await fetch('/api/auth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identifier, password })
+        body: JSON.stringify({ 
+          action: 'login',
+          identifier, 
+          password 
+        })
       });
       
       const result = await response.json();
       
-      if (!response.ok) {
+      if (!result.success) {
         error = result.error || 'Login failed. Please check your credentials.';
       } else {
         // Store the user in the client-side store
         setUser(result.user);
         // Navigate to authenticated area
-        goto('/auth/collection');
+        goto('/auth');
       }
     } catch (err) {
       console.error('Login error:', err);

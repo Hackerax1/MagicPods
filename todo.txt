@@ -1,0 +1,47 @@
+## HIGH PRIORITY
+
+*   [ ] **Security:**
+    *   [ ] **Regular Security Audits:** Conduct regular security audits to identify and address vulnerabilities.
+    *   [ ] **Input Sanitization:** Sanitize user inputs to prevent XSS attacks.
+    *   [ ] **Rate Limiting:** Implement rate limiting to prevent abuse.
+*   [x] **Authentication Simplification**
+    *   [x] **JWT Implementation:** Implemented JWTs for session management.
+    *   [x] **Consolidate API Endpoints:** Created a single `/api/auth` endpoint with actions (login, register, me, logout).
+    *   [x] **Error Handling:** Improved error messages for authentication failures with better error handling.
+    *   [ ] **Card Scanner Authentication:** Update card scanner microservice to use the new JWT authentication (future task).
+*   [ ] **Responsiveness and Mobile-Friendliness**
+    *   [ ] **Review Viewport Meta Tag:** (src/app.html) - Ensure it's correctly set up.
+    *   [ ] **Component Audit:** Inspect all components (Card.svelte, DeckBuilder.svelte, etc.) for responsiveness. Use Tailwind's responsive modifiers (sm:, md:, lg:, xl:) effectively. Ensure text is readable on smaller screens. Check for horizontal scrolling issues.
+    *   [ ] **Flexible Layouts:** Replace fixed widths with flexible units (%, vw, vh). Utilize flexbox and grid layouts for adaptability.
+
+## MEDIUM PRIORITY
+
+*   [ ] **Authentication Improvements**
+    *   [ ] **Password Reset:** Implement "forgot password" functionality.
+*   [ ] **Code Improvements**
+    *   [ ] **API Endpoint Structure:** (src/lib/server/api/) Combine similar endpoints into single files with action-based routing.
+    *   [ ] **Error Handling:** Standardize error response format across API endpoints.
+    *   [ ] **Data Validation:** Implement server-side data validation.
+    *   [ ] **Environment Variables:** Ensure all sensitive information is stored in environment variables.
+*   [x] **Testing**
+    *   [x] **Unit Tests:** Implemented unit tests for auth module and Login component using Vitest.
+    *   [x] **End-to-End Tests:** Created Playwright tests for authentication and deck functionality.
+*   [ ] **Performance Optimization**
+    *   [ ] **Lazy Loading:** Implement lazy loading for images and other resources.
+
+## LOW PRIORITY
+
+*   [ ] **UI/UX Enhancements**
+    *   [ ] **Design System/Style Guide:** Define a color palette, typography, and spacing scale. Document UI patterns for consistency.
+    *   [ ] **Component Library:** Create reusable UI components (buttons, inputs, cards, etc.).
+    *   [ ] **Accessibility (A11y):** Use semantic HTML. Provide alt text for images. Ensure sufficient color contrast. Make the application keyboard-navigable.
+    *   [ ] **Loading States:** Implement spinners or progress bars for loading data.
+    *   [ ] **Notifications/Alerts:** Display notifications for successful actions and errors.
+    *   [ ] **Empty States:** Handle empty states with helpful messages and calls to action.
+    *   [ ] **Card Images:** Optimize card images (consider Cloudinary or Imgix).
+    *   [ ] **Drag and Drop:** (Deck Building) Implement drag-and-drop functionality for adding/removing cards.
+*   [ ] **Testing**
+    *   [ ] **Accessibility Tests:** Integrate accessibility testing into your CI/CD pipeline.
+*   [ ] **Performance Optimization**
+    *   [ ] **Code Splitting:** Split your code into smaller chunks for faster initial load times.
+    *   [ ] **Caching:** Implement caching strategies for frequently accessed data.
