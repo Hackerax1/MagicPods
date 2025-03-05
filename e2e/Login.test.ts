@@ -1,7 +1,8 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/svelte';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { goto } from '$app/navigation';
-import Login from './Login.svelte';
+import '@testing-library/jest-dom/extend-expect';
+import Login from '../src/lib/components/Login.svelte';
 import { setUser } from '$lib/stores/userStore';
 
 // Mock external dependencies
