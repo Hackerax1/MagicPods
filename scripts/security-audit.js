@@ -14,6 +14,8 @@ const path = require('path');
 const fs = require('fs');
 const { execSync } = require('child_process');
 
+import { scheduledSecurityAudit } from '../src/lib/server/utils/security/audit.js';
+
 // Create the security-audits directory if it doesn't exist
 const auditDir = path.join(__dirname, '..', 'security-audits');
 if (!fs.existsSync(auditDir)) {
@@ -116,3 +118,28 @@ function generateMarkdownReport(auditResult) {
 
 // Run the audit
 runCustomAudit();
+
+async function runAudit() {
+  try {
+    const result = await scheduledSecurityAudit();
+    console.log('Security Audit Results:');
+    console.log('------------------------');
+    console.log(`Total Vulnerabilities: ${result.summary.totalVulnerabilities}`);
+    console.log(`Critical: ${result.summary.criticalCount}`);
+    console.log(`High: ${result.summary.highCount}`);
+    console.log(`Medium: ${result.summary.mediumCount}`);
+    console.log(`Low: ${result.summary.lowCount}`);
+    console.log('\nDetailed vulnerabilities:');
+    result.vulnerabilities.forEach(vuln => {
+      console.log(`\n[${vuln.severity.toUpperCase()}] ${vuln.id}`);
+      console.log(`Component: ${vuln.affectedComponent}`);
+      console.log(`Description: ${vuln.description}`);
+      console.log(`Recommendation: ${vuln.recommendation}`);
+    });
+  } catch (error) {
+    console.error('Error running security audit:', error);
+    process.exit(1);
+  }
+}
+
+runAudit();

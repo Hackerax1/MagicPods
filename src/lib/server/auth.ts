@@ -6,14 +6,21 @@ import bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 import jwt from 'jsonwebtoken';
 import { user } from '../server/db/schema';
+import { env } from '$env/dynamic/private';
 
 // JWT Settings
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key'; // In production, use env variable
+const JWT_SECRET = env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error('JWT_SECRET environment variable is not set');
+}
 const JWT_EXPIRES_IN = '30d';
 export const AUTH_COOKIE_NAME = 'auth-token';
 
 // JWT Helper functions
 function generateJWT(payload: any) {
+  if (!JWT_SECRET) {
+    throw new Error('JWT_SECRET is not defined');
+  }
   return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
 }
 
@@ -26,7 +33,10 @@ export async function validateToken(event: RequestEvent) {
   
   try {
     // Verify and decode the JWT
-    const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
+    if (!JWT_SECRET) {
+      throw new Error('JWT_SECRET is not defined');
+    }
+    const decoded = jwt.verify(token, JWT_SECRET) as unknown as { userId: string };
     
     // Get the user from the database
     const [userRecord] = await db

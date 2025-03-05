@@ -3,10 +3,11 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { user } from '$lib/stores/userStore';
+	import type { User } from '$lib/stores/userStore';
 
 	let { children } = $props();
-	let isMenuOpen = false;
-	let currentUser: any = null;
+	let isMenuOpen = $state(false);
+	let currentUser = $state<User>(null);
 	
 	// Subscribe to the user store
 	user.subscribe(value => {
@@ -66,7 +67,7 @@
 						<a href="/auth/collection" class="hover:text-indigo-200 transition">Collection</a>
 						<a href="/auth/pods" class="hover:text-indigo-200 transition">Pods</a>
 						<button 
-							on:click={handleLogout}
+							onclick={handleLogout}
 							class="bg-indigo-800 hover:bg-indigo-900 px-4 py-2 rounded-md transition">
 							Logout
 						</button>
@@ -79,7 +80,7 @@
 				<button 
 					id="nav-toggle"
 					class="md:hidden text-white focus:outline-none" 
-					on:click|stopPropagation={toggleMenu}
+					onclick={(e) => { e.stopPropagation(); toggleMenu(); }}
 					aria-label="Toggle menu">
 					<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="w-6 h-6">
 						{#if isMenuOpen}
@@ -101,7 +102,7 @@
 							<a href="/auth/collection" class="hover:bg-indigo-800 px-3 py-2 rounded transition">Collection</a>
 							<a href="/auth/pods" class="hover:bg-indigo-800 px-3 py-2 rounded transition">Pods</a>
 							<button 
-								on:click={handleLogout}
+								onclick={handleLogout}
 								class="text-left bg-indigo-800 hover:bg-indigo-900 px-3 py-2 rounded transition">
 								Logout
 							</button>

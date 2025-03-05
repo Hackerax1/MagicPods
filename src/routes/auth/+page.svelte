@@ -2,11 +2,25 @@
   import { onMount } from 'svelte';
   import { user } from '$lib/stores/userStore';
   import { goto } from '$app/navigation';
+  import type { User } from '$lib/stores/userStore';
 
-  let currentUser: any = null;
+  interface Stats {
+    decks: { count: number; loading: boolean };
+    cards: { count: number; loading: boolean };
+    pods: { count: number; loading: boolean };
+    recents: Array<{
+      type: 'deck' | 'card' | 'pod';
+      name: string;
+      date: string;
+      id: string;
+    }>;
+  }
+
+  let currentUser: User = null;
   let statsLoading = true;
+  let error: string | null = null;
   
-  let stats = {
+  let stats: Stats = {
     decks: { count: 0, loading: true },
     cards: { count: 0, loading: true },
     pods: { count: 0, loading: true },
@@ -18,42 +32,68 @@
     currentUser = value;
   });
 
+  async function fetchStats() {
+    if (!currentUser?.id) return;
+    
+    try {
+      const [decksResponse, cardsResponse, podsResponse] = await Promise.all([
+        fetch(`/api/deck?userId=${currentUser.id}`),
+        fetch(`/api/collection?userId=${currentUser.id}`),
+        fetch(`/api/pods?userId=${currentUser.id}`)
+      ]);
+
+      const [decksData, cardsData, podsData] = await Promise.all([
+        decksResponse.json(),
+        cardsResponse.json(),
+        podsResponse.json()
+      ]);
+
+      // Get recent activity
+      const recentResponse = await fetch(`/api/activity?userId=${currentUser.id}&limit=3`);
+      const recentData = await recentResponse.json();
+
+      stats = {
+        decks: { count: decksData.total || 0, loading: false },
+        cards: { count: cardsData.total || 0, loading: false },
+        pods: { count: podsData.total || 0, loading: false },
+        recents: recentData.items || []
+      };
+    } catch (err) {
+      console.error('Error fetching stats:', err);
+      error = 'Failed to load some dashboard data. Please try refreshing the page.';
+    } finally {
+      statsLoading = false;
+    }
+  }
+
   onMount(async () => {
     if (!currentUser) {
-      // If no user is in the store, try to fetch from API
       try {
-        const response = await fetch('/api/me');
+        const response = await fetch('/api/auth');
         const data = await response.json();
         
         if (data.user) {
-          // Update the store with the user data
           user.set(data.user);
+          await fetchStats();
         } else {
-          // Not logged in, redirect to login page
           goto('/');
         }
-      } catch (error) {
-        console.error('Error fetching current user:', error);
+      } catch (err) {
+        console.error('Error fetching current user:', err);
+        error = 'Failed to authenticate. Please try logging in again.';
         goto('/');
       }
+    } else {
+      await fetchStats();
     }
-
-    // Simulate fetching user stats
-    setTimeout(() => {
-      stats = {
-        decks: { count: 12, loading: false },
-        cards: { count: 348, loading: false },
-        pods: { count: 3, loading: false },
-        recents: [
-          { type: 'deck', name: 'Blue Control', date: '2023-08-15', id: '1' },
-          { type: 'card', name: 'Black Lotus', date: '2023-08-14', id: '2' },
-          { type: 'pod', name: 'Friday Night Magic', date: '2023-08-13', id: '3' },
-        ]
-      };
-      statsLoading = false;
-    }, 800);
   });
 </script>
+
+{#if error}
+  <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+    <span class="block sm:inline">{error}</span>
+  </div>
+{/if}
 
 {#if currentUser}
   <div class="dashboard">

@@ -1,10 +1,9 @@
 import { writable } from 'svelte/store';
 
-type User = {
+export type User = {
   id: string;
   username: string;
   email: string;
-  name: string;
 } | null;
 
 export const user = writable<User>(null);

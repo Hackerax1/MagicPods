@@ -1,9 +1,7 @@
 ## HIGH PRIORITY
 
 *   [ ] **Security:**
-    *   [ ] **Regular Security Audits:** Conduct regular security audits to identify and address vulnerabilities.
-    *   [ ] **Input Sanitization:** Sanitize user inputs to prevent XSS attacks.
-    *   [ ] **Rate Limiting:** Implement rate limiting to prevent abuse.
+    *   [ ] **Automate Security Audits:** Add npm script for security audits and integrate with CI/CD pipeline. Use existing audit.ts utility.
 *   [ ] **Card Scanner Authentication:** Update card scanner microservice to use the new JWT authentication.
 *   [ ] **Responsiveness and Mobile-Friendliness**
     *   [ ] **Review Viewport Meta Tag:** (src/app.html) - Ensure it's correctly set up.
@@ -16,14 +14,16 @@
     *   [ ] **Password Reset:** Implement "forgot password" functionality.
 *   [ ] **Code Improvements**
     *   [ ] **API Endpoint Structure:** Review and refactor API endpoints in (src/lib/server/api/) to ensure optimal structure and maintainability.
-    *   [ ] **Error Handling:** Standardize error response format across API endpoints.
-    *   [ ] **Data Validation:** Implement server-side data validation.
-    *   [ ] **Environment Variables:** Ensure all sensitive information is stored in environment variables.
 *   [ ] **Performance Optimization**
     *   [ ] **Lazy Loading:** Implement lazy loading for images and other resources.
     *   [ ] **Optimize Dockerfile:** Improve Dockerfile for card scanner microservice to reduce image size and build time.
 *   [ ] **Testing**
     *   [ ] **Expand End-to-End Tests:** Create Playwright tests for key workflows beyond authentication and deck functionality (e.g., adding cards to collection, creating pods).
+*   [ ] **Implement Trading System**
+    *   [ ] **Trade Offers:** Allow users to create trade offers for cards.
+    *   [ ] **Trade Notifications:** Notify users when they receive a trade offer.
+    *   [ ] **Trade History:** Maintain a history of completed trades.
+    *   [ ] **Multiway Trades in a Pod:** Enable multiway trades within a pod, allowing multiple users to participate in a single trade.
 
 ## LOW PRIORITY
 
@@ -31,8 +31,6 @@
     *   [ ] **Design System/Style Guide:** Define a color palette, typography, and spacing scale. Document UI patterns for consistency.
     *   [ ] **Component Library:** Create reusable UI components (buttons, inputs, cards, etc.).
     *   [ ] **Accessibility (A11y):** Use semantic HTML. Provide alt text for images. Ensure sufficient color contrast. Make the application keyboard-navigable.
-    *   [ ] **Loading States:** Implement spinners or progress bars for loading data.
-    *   [ ] **Notifications/Alerts:** Display notifications for successful actions and errors.
     *   [ ] **Empty States:** Handle empty states with helpful messages and calls to action.
     *   [ ] **Card Images:** Optimize card images (consider Cloudinary or Imgix).
     *   [ ] **Drag and Drop:** (Deck Building) Implement drag-and-drop functionality for adding/removing cards.

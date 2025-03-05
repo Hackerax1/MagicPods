@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { goto } from '$app/navigation';
 import '@testing-library/jest-dom/extend-expect';
 import Login from '../src/lib/components/Login.svelte';
-import { setUser } from '$lib/stores/userStore';
+import { setUser } from '../src/lib/stores/userStore';
 
 // Mock external dependencies
 vi.mock('$app/navigation', () => ({
