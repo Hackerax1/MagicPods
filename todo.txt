@@ -4,11 +4,7 @@
     *   [ ] **Regular Security Audits:** Conduct regular security audits to identify and address vulnerabilities.
     *   [ ] **Input Sanitization:** Sanitize user inputs to prevent XSS attacks.
     *   [ ] **Rate Limiting:** Implement rate limiting to prevent abuse.
-*   [x] **Authentication Simplification**
-    *   [x] **JWT Implementation:** Implemented JWTs for session management.
-    *   [x] **Consolidate API Endpoints:** Created a single `/api/auth` endpoint with actions (login, register, me, logout).
-    *   [x] **Error Handling:** Improved error messages for authentication failures with better error handling.
-    *   [ ] **Card Scanner Authentication:** Update card scanner microservice to use the new JWT authentication (future task).
+*   [ ] **Card Scanner Authentication:** Update card scanner microservice to use the new JWT authentication.
 *   [ ] **Responsiveness and Mobile-Friendliness**
     *   [ ] **Review Viewport Meta Tag:** (src/app.html) - Ensure it's correctly set up.
     *   [ ] **Component Audit:** Inspect all components (Card.svelte, DeckBuilder.svelte, etc.) for responsiveness. Use Tailwind's responsive modifiers (sm:, md:, lg:, xl:) effectively. Ensure text is readable on smaller screens. Check for horizontal scrolling issues.
@@ -19,15 +15,15 @@
 *   [ ] **Authentication Improvements**
     *   [ ] **Password Reset:** Implement "forgot password" functionality.
 *   [ ] **Code Improvements**
-    *   [ ] **API Endpoint Structure:** (src/lib/server/api/) Combine similar endpoints into single files with action-based routing.
+    *   [ ] **API Endpoint Structure:** Review and refactor API endpoints in (src/lib/server/api/) to ensure optimal structure and maintainability.
     *   [ ] **Error Handling:** Standardize error response format across API endpoints.
     *   [ ] **Data Validation:** Implement server-side data validation.
     *   [ ] **Environment Variables:** Ensure all sensitive information is stored in environment variables.
-*   [x] **Testing**
-    *   [x] **Unit Tests:** Implemented unit tests for auth module and Login component using Vitest.
-    *   [x] **End-to-End Tests:** Created Playwright tests for authentication and deck functionality.
 *   [ ] **Performance Optimization**
     *   [ ] **Lazy Loading:** Implement lazy loading for images and other resources.
+    *   [ ] **Optimize Dockerfile:** Improve Dockerfile for card scanner microservice to reduce image size and build time.
+*   [ ] **Testing**
+    *   [ ] **Expand End-to-End Tests:** Create Playwright tests for key workflows beyond authentication and deck functionality (e.g., adding cards to collection, creating pods).
 
 ## LOW PRIORITY
 

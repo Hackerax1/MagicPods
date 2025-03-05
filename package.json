@@ -51,6 +51,7 @@
 		"bcryptjs": "^2.4.3",
 		"csv-parser": "^3.2.0",
 		"drizzle-orm": "^0.38.4",
+		"express-rate-limit": "^7.5.0",
 		"jsonwebtoken": "^9.0.2",
 		"postgres": "^3.4.5",
 		"uuid": "^11.0.5"
