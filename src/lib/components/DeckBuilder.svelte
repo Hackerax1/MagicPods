@@ -78,7 +78,7 @@
   };
 </script>
 
-<div class="deck-builder-container">
+<div class="min-h-screen max-w-[1920px] mx-auto p-4">
   <div class="bg-white rounded-lg shadow-lg overflow-hidden">
     <div class="bg-indigo-700 text-white p-4">
       <h1 class="text-2xl font-bold">Deck Builder</h1>
@@ -88,21 +88,23 @@
     
     {#if currentTab === 'builder'}
       <div class="p-4">
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="grid grid-cols-1 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
           <!-- Left Column -->
-          <div class="lg:col-span-1 space-y-6">
-            <CardSearch onCardFound={handleCardFound} />
-            <DeckInfo
-              bind:deckName
-              bind:deckDescription
-              bind:savingDeck
-              bind:error
-              onSave={handleSaveDeck}
-            />
+          <div class="xl:col-span-1">
+            <div class="sticky top-4 space-y-6">
+              <CardSearch onCardFound={handleCardFound} />
+              <DeckInfo
+                bind:deckName
+                bind:deckDescription
+                bind:savingDeck
+                bind:error
+                onSave={handleSaveDeck}
+              />
+            </div>
           </div>
           
           <!-- Right Column -->
-          <div class="lg:col-span-2">
+          <div class="xl:col-span-2 2xl:col-span-3">
             <DeckList
               {deck}
               bind:sortOption

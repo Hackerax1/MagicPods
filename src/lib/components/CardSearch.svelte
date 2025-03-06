@@ -62,7 +62,7 @@
   };
 </script>
 
-<div class="bg-gray-50 p-4 rounded-md">
+<div class="bg-gray-50 p-4 rounded-md w-full">
   <h2 class="text-lg font-medium text-gray-900 mb-3">Add Cards</h2>
   
   <div class="mb-4">
@@ -100,24 +100,28 @@
   
   {#if showCardView && cardData}
     <div class="mt-4 border border-gray-200 rounded-md p-3">
-      <div class="flex flex-col sm:flex-row items-center">
-        <img 
-          src={cardData.image_uris.small} 
-          alt={cardData.name} 
-          class="w-24 rounded shadow-sm mb-3 sm:mb-0 sm:mr-3"
-        />
-        <div class="flex-1">
-          <h3 class="font-medium">{cardData.name}</h3>
-          <p class="text-sm text-gray-600 mb-2">{cardData.type_line}</p>
-          <button 
-            on:click={handleAddToDeck}
-            class="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-          >
-            <svg class="h-4 w-4 mr-1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
-            </svg>
-            Add to Deck
-          </button>
+      <div class="flex flex-col sm:flex-row items-center gap-3">
+        <div class="flex-shrink-0 w-full sm:w-auto">
+          <img 
+            src={cardData.image_uris.small} 
+            alt={cardData.name} 
+            class="w-full sm:w-24 h-auto rounded shadow-sm object-contain mx-auto"
+          />
+        </div>
+        <div class="flex-1 w-full">
+          <h3 class="font-medium text-center sm:text-left">{cardData.name}</h3>
+          <p class="text-sm text-gray-600 mb-2 text-center sm:text-left">{cardData.type_line}</p>
+          <div class="flex justify-center sm:justify-start">
+            <button 
+              on:click={handleAddToDeck}
+              class="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            >
+              <svg class="h-4 w-4 mr-1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
+              </svg>
+              Add to Deck
+            </button>
+          </div>
         </div>
       </div>
     </div>

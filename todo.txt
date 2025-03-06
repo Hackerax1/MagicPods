@@ -3,10 +3,10 @@
 *   [ ] **Security:**
     *   [ ] **Automate Security Audits:** Add npm script for security audits and integrate with CI/CD pipeline. Use existing audit.ts utility.
 *   [ ] **Card Scanner Authentication:** Update card scanner microservice to use the new JWT authentication.
-*   [ ] **Responsiveness and Mobile-Friendliness**
+*   [x] **Responsiveness and Mobile-Friendliness**
     *   [ ] **Review Viewport Meta Tag:** (src/app.html) - Ensure it's correctly set up.
-    *   [ ] **Component Audit:** Inspect all components (Card.svelte, DeckBuilder.svelte, etc.) for responsiveness. Use Tailwind's responsive modifiers (sm:, md:, lg:, xl:) effectively. Ensure text is readable on smaller screens. Check for horizontal scrolling issues.
-    *   [ ] **Flexible Layouts:** Replace fixed widths with flexible units (%, vw, vh). Utilize flexbox and grid layouts for adaptability.
+    *   [x] **Component Audit:** Inspect all components (Card.svelte, DeckBuilder.svelte, etc.) for responsiveness. Use Tailwind's responsive modifiers (sm:, md:, lg:, xl:) effectively. Ensure text is readable on smaller screens. Check for horizontal scrolling issues.
+    *   [x] **Flexible Layouts:** Replace fixed widths with flexible units (%, vw, vh). Utilize flexbox and grid layouts for adaptability.
 
 ## MEDIUM PRIORITY
 

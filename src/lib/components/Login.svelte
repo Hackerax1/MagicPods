@@ -173,9 +173,4 @@
   </div>
 </div>
 
-<style>
-  .login-form {
-    max-width: 400px;
-    margin: auto;
-  }
-</style>
+

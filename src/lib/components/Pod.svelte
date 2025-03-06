@@ -181,19 +181,3 @@
   </div>
 </main>
 
-<style>
-  .pod {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    margin: 1rem;
-  }
-
-  .pod-user {
-    margin: 0.5rem;
-  }
-
-  .pod-deck {
-    margin: 0.5rem;
-  }
-</style>

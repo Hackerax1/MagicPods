@@ -72,16 +72,16 @@
   $: deckSize = deck.reduce((acc, card) => acc + (card.quantity || 1), 0);
 </script>
 
-<div class="bg-gray-50 p-4 rounded-md">
-  <div class="flex justify-between items-center mb-4">
+<div class="bg-gray-50 p-4 rounded-md w-full">
+  <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
     <h2 class="text-lg font-medium text-gray-900">Current Deck ({deckSize} cards)</h2>
     
-    <div class="flex items-center space-x-2">
-      <label for="sort-option" class="text-sm text-gray-600">Sort by:</label>
+    <div class="flex items-center gap-2 w-full sm:w-auto">
+      <label for="sort-option" class="text-sm text-gray-600 whitespace-nowrap">Sort by:</label>
       <select 
         id="sort-option" 
         bind:value={sortOption}
-        class="block w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+        class="block w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm min-w-[120px]"
       >
         <option value="type">Type</option>
         <option value="cmc">Mana Value</option>
@@ -102,28 +102,28 @@
     <div class="space-y-6">
       {#each Object.entries(sortedDeck()) as [category, cards]}
         <div>
-          <h3 class="font-medium text-gray-900 mb-2 flex items-center">
-            {category}
-            <span class="ml-2 text-sm text-gray-500">({cards.length} {cards.length === 1 ? 'card' : 'cards'})</span>
+          <h3 class="font-medium text-gray-900 mb-2 flex flex-wrap items-center gap-2">
+            <span>{category}</span>
+            <span class="text-sm text-gray-500">({cards.length} {cards.length === 1 ? 'card' : 'cards'})</span>
           </h3>
           
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-3">
             {#each cards as card}
               <div class="flex items-center bg-white p-2 rounded-md border border-gray-200 hover:border-indigo-300 transition-colors">
-                <div class="flex-shrink-0 mr-3">
+                <div class="flex-shrink-0 mr-3 w-16">
                   {#if card.image_uris?.art_crop}
                     <img 
                       src={card.image_uris.art_crop} 
                       alt={card.name} 
-                      class="h-12 w-16 object-cover rounded shadow-sm"
+                      class="w-full h-12 object-cover rounded shadow-sm"
                     />
                   {/if}
                 </div>
-                <div class="flex-1 min-w-0">
+                <div class="flex-1 min-w-0 pr-2">
                   <p class="text-sm font-medium text-gray-900 truncate">{card.name}</p>
                   <p class="text-xs text-gray-500 truncate">{card.type_line}</p>
                 </div>
-                <div class="flex items-center space-x-1">
+                <div class="flex items-center gap-1 ml-auto">
                   <button 
                     on:click={() => onRemoveCard(card)}
                     class="p-1 rounded-full text-gray-400 hover:text-red-500 focus:outline-none"
@@ -133,7 +133,7 @@
                       <path fill-rule="evenodd" d="M5 10a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1z" clip-rule="evenodd" />
                     </svg>
                   </button>
-                  <span class="text-sm font-medium">{card.quantity || 1}</span>
+                  <span class="text-sm font-medium min-w-[1.5rem] text-center">{card.quantity || 1}</span>
                   <button 
                     on:click={() => onAddCard(card)}
                     class="p-1 rounded-full text-gray-400 hover:text-green-500 focus:outline-none"
