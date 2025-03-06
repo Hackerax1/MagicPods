@@ -123,6 +123,7 @@
                 alt={cardData.name}
                 class="rounded-lg shadow-sm hover:shadow-lg transition-shadow w-full h-auto object-contain"
                 loading="lazy"
+                fetchpriority="low"
               />
               <div class="absolute inset-0 bg-black opacity-0 group-hover:opacity-20 transition-opacity rounded-lg flex items-center justify-center">
                 <a 

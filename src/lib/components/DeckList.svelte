@@ -116,6 +116,8 @@
                       src={card.image_uris.art_crop} 
                       alt={card.name} 
                       class="w-full h-12 object-cover rounded shadow-sm"
+                      loading="lazy"
+                      fetchpriority="low"
                     />
                   {/if}
                 </div>

@@ -106,6 +106,8 @@
             src={cardData.image_uris.small} 
             alt={cardData.name} 
             class="w-full sm:w-24 h-auto rounded shadow-sm object-contain mx-auto"
+            loading="lazy"
+            fetchpriority="low"
           />
         </div>
         <div class="flex-1 w-full">

@@ -11,6 +11,10 @@ const SCRYFALL_BULK_DATA_URL = 'https://api.scryfall.com/bulk-data';
 const SCRYFALL_SEARCH_URL = 'https://api.scryfall.com/cards/search';
 const DATA_DIR = path.resolve(__dirname, '../../data');
 
+// Simple in-memory cache to reduce API calls to Scryfall
+const cardCache = new Map<string, { data: any, timestamp: number }>();
+const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours cache time
+
 async function fetchBulkData() {
   const response = await fetch(SCRYFALL_BULK_DATA_URL);
   if (!response.ok) {
@@ -56,6 +60,17 @@ export async function getBulkData(type: string) {
 }
 
 export async function fetchCard(cardName: string) {
+  // Normalize card name to use as cache key (lowercase, trim whitespace)
+  const cacheKey = cardName.toLowerCase().trim();
+  
+  // Check cache first
+  const cached = cardCache.get(cacheKey);
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    // Return cached data if it's not expired
+    return cached.data;
+  }
+  
+  // Make API call if no cache hit or cache expired
   const response = await fetch(`${SCRYFALL_SEARCH_URL}?q=${encodeURIComponent(cardName)}`);
   if (!response.ok) {
     throw new Error('Failed to fetch card data from Scryfall');
@@ -64,7 +79,19 @@ export async function fetchCard(cardName: string) {
   if (data.object === 'error') {
     throw new Error(data.details);
   }
+  
+  // Save result in cache
+  cardCache.set(cacheKey, {
+    data: data.data[0],
+    timestamp: Date.now()
+  });
+  
   return data.data[0]; // Return the first matching card
+}
+
+// Helper function to clear cache if needed
+export function clearCardCache() {
+  cardCache.clear();
 }
 
 // Run the update process (you can schedule this or run it manually)

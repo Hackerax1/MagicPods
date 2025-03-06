@@ -1,17 +1,37 @@
-# Use the official Python image from the Docker Hub
-FROM python:3.9-slim
+# Use a multi-stage build to reduce size
+# Build stage
+FROM python:3.9-slim AS builder
 
-# Set the working directory in the container
+# Install build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends gcc python3-dev && \
+    rm -rf /var/lib/apt/lists/*
+
+# Set work directory for the build
 WORKDIR /app
 
-# Copy the current directory contents into the container at /app
-COPY . /app
+# Install dependencies into a virtual environment
+RUN python -m venv /opt/venv
+# Make sure we use the virtualenv
+ENV PATH="/opt/venv/bin:$PATH"
 
-# Install any needed packages specified in requirements.txt
+# Copy and install requirements
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Remove build dependencies to reduce image size
-RUN apt-get purge -y --auto-remove && rm -rf /var/lib/apt/lists/*
+# Final stage
+FROM python:3.9-slim
+
+# Set working directory
+WORKDIR /app
+
+# Copy virtual environment from builder stage
+COPY --from=builder /opt/venv /opt/venv
+
+# Make sure we use the virtualenv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Copy application files
+COPY . .
 
 # Make port 5000 available to the world outside this container
 EXPOSE 5000

@@ -1,6 +1,9 @@
 ## HIGH PRIORITY
 
 *   [ ] **Investigate and Fix Failing Security Tests:** The security tests are consistently failing; investigate the cause and implement fixes.
+*   [ ] **Remove Dependency on drizzle-kit:** Refactor code to eliminate the use of drizzle-kit.
+*   [ ] **Remove Dependency on @sveltejs/kit:** Refactor code to eliminate the use of @sveltejs/kit.
+*   [ ] **Remove Dependency on @sveltejs/adapter-auto:** Refactor code to eliminate the use of @sveltejs/adapter-auto.
 *   [ ] **Implement Card Scanner Microservice:** Refactor the card scanner functionality into a separate, user-facing application.
 
 ## MEDIUM PRIORITY
@@ -42,3 +45,4 @@
 *   [ ] **Performance Monitoring:** Monitor application performance and identify areas for optimization.
 *   [ ] **Security Audits:** Perform periodic security audits to identify and address potential security vulnerabilities.
 *   [ ] **Database Maintenance:** Regularly maintain the database by optimizing queries, cleaning up old data, and performing backups.
+
