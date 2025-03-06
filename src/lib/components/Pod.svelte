@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { get } from 'svelte/store';
   import { getUserPods, getPodDecks, inviteUserToPod, createDeck, removeUserFromPod, removeDeckFromPod, updateWinLoss } from '$lib/server/db';
   import { tradeStore } from '../stores/tradeStore';
   import TradeNotifications from './TradeNotifications.svelte';
@@ -14,9 +15,10 @@
   let loss = 0;
   let userId = 'currentUserId'; // Replace with actual user ID
 
-  let selectedCards = [];
-  let participants = [];
+  let selectedCards: any[] = [];
+  let participants: any[] = [];
   let loadingParticipants = true;
+  let selectedParticipants: string[] = [];
 
   onMount(async () => {
     pods = await getUserPods(userId);
@@ -246,12 +248,15 @@
               <div class="participants">
                 <h4>Select Participants</h4>
                 {#each participants as participant}
-                  <label>
-                    <input type="checkbox" 
-                          bind:group={selectedParticipants} 
-                          value={participant.userId}>
+                  <label for="participant-{participant.userId}">
                     {participant.username}
                   </label>
+                  <input 
+                    type="checkbox" 
+                    id="participant-{participant.userId}" 
+                    bind:group={selectedParticipants} 
+                    value={participant.userId} 
+                  />
                 {/each}
               </div>
               
