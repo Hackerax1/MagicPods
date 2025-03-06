@@ -3,6 +3,11 @@ import dotenv from 'dotenv';
 import path from 'path';
 
 // Load test environment variables
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 dotenv.config({ path: path.join(__dirname, 'e2e', 'test.env') });
 
 export default defineConfig({
@@ -21,8 +26,8 @@ export default defineConfig({
     port: 5173,
     reuseExistingServer: !process.env.CI,
     env: {
-      JWT_SECRET: process.env.JWT_SECRET,
-      DATABASE_URL: process.env.DATABASE_URL
+      JWT_SECRET: process.env.JWT_SECRET || '',
+      DATABASE_URL: process.env.DATABASE_URL || ''
     }
   },
   projects: [
