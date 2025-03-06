@@ -7,7 +7,7 @@ import { successResponse, errorResponse, ApiErrors } from '../utils/apiResponse'
 import { sanitizeString } from '../utils/security/sanitize';
 import { standardRateLimit } from '../utils/security/rateLimit';
 import { v4 as uuidv4 } from 'uuid';
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, and, desc, inArray } from 'drizzle-orm';
 
 // Type definitions for request bodies
 interface CreateTradeBody {
@@ -21,6 +21,15 @@ interface CreateTradeBody {
 
 interface UpdateTradeStatusBody {
   status: 'pending' | 'accepted' | 'rejected' | 'completed' | 'cancelled';
+}
+
+interface AddParticipantBody {
+  userId: string;
+}
+
+interface AddItemBody {
+  userCardId: string;
+  quantity: number;
 }
 
 async function createTradeNotification(tradeId: string, userId: string, message: string) {
@@ -49,53 +58,60 @@ export async function POST(event: RequestEvent) {
         return errorResponse('Missing required fields', 400);
       }
 
-      // Create the trade
-      const [newTrade] = await db.insert(trade).values({
-        id: uuidv4(),
-        podId: body.podId,
-        status: 'pending',
-        createdAt: new Date(),
-        updatedAt: new Date()
-      }).returning();
-
-      // Add participants
-      const uniqueParticipants = [...new Set([user.id, ...body.participants])];
-      await Promise.all(uniqueParticipants.map(async (userId) => {
-        await db.insert(tradeParticipant).values({
+      // Create the trade and add all related data in a transaction
+      const result = await db.transaction(async (tx) => {
+        // Create trade
+        const [newTrade] = await tx.insert(trade).values({
           id: uuidv4(),
-          tradeId: newTrade.id,
-          userId
-        });
+          podId: body.podId,
+          status: 'pending',
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }).returning();
 
-        if (userId !== user.id) {
-          await createTradeNotification(
-            newTrade.id,
-            userId,
-            `You've been invited to a new trade by ${user.username}`
-          );
+        // Add participants
+        const uniqueParticipants = [...new Set([user.id, ...body.participants])];
+        await Promise.all(uniqueParticipants.map(async (userId) => {
+          await tx.insert(tradeParticipant).values({
+            id: uuidv4(),
+            tradeId: newTrade.id,
+            userId
+          });
+
+          if (userId !== user.id) {
+            await tx.insert(tradeNotification).values({
+              id: uuidv4(),
+              tradeId: newTrade.id,
+              userId,
+              message: `You've been invited to a new trade by ${user.username}`,
+              createdAt: new Date()
+            });
+          }
+        }));
+
+        // Verify and add items
+        for (const item of body.items) {
+          const [userCardDetails] = await tx
+            .select()
+            .from(userCard)
+            .where(eq(userCard.id, item.userCardId));
+          
+          if (!userCardDetails || userCardDetails.userId !== user.id) {
+            throw new Error('Card not found or not owned by user');
+          }
+
+          await tx.insert(tradeItem).values({
+            id: uuidv4(),
+            tradeId: newTrade.id,
+            userCardId: item.userCardId,
+            quantity: item.quantity
+          });
         }
-      }));
 
-      // Add initial items
-      await Promise.all(body.items.map(async (item) => {
-        const [userCardDetails] = await db
-          .select()
-          .from(userCard)
-          .where(eq(userCard.id, item.userCardId));
-        
-        if (!userCardDetails || userCardDetails.userId !== user.id) {
-          throw new Error('Card not found or not owned by user');
-        }
+        return { trade: newTrade };
+      });
 
-        await db.insert(tradeItem).values({
-          id: uuidv4(),
-          tradeId: newTrade.id,
-          userCardId: item.userCardId,
-          quantity: item.quantity
-        });
-      }));
-
-      return successResponse({ trade: newTrade });
+      return successResponse(result);
     }
 
     if (tradeId) {
@@ -125,33 +141,39 @@ export async function POST(event: RequestEvent) {
           return errorResponse('Invalid trade status', 400);
         }
 
-        // Get all participants for notifications
-        const participants = await db
-          .select()
-          .from(tradeParticipant)
-          .where(eq(tradeParticipant.tradeId, tradeId));
+        // Get all participants and update trade status in a transaction
+        const result = await db.transaction(async (tx) => {
+          const participants = await tx
+            .select()
+            .from(tradeParticipant)
+            .where(eq(tradeParticipant.tradeId, tradeId));
 
-        const [updatedTrade] = await db
-          .update(trade)
-          .set({ 
-            status: newStatus,
-            updatedAt: new Date()
-          })
-          .where(eq(trade.id, tradeId))
-          .returning();
+          const [updatedTrade] = await tx
+            .update(trade)
+            .set({ 
+              status: newStatus,
+              updatedAt: new Date()
+            })
+            .where(eq(trade.id, tradeId))
+            .returning();
 
-        // Notify all participants except the updater
-        await Promise.all(participants.map(async (p) => {
-          if (p.userId !== user.id) {
-            await createTradeNotification(
-              tradeId,
-              p.userId,
-              `Trade status updated to ${newStatus} by ${user.username}`
-            );
-          }
-        }));
+          // Create notifications within the same transaction
+          await Promise.all(participants.map(async (p) => {
+            if (p.userId !== user.id) {
+              await tx.insert(tradeNotification).values({
+                id: uuidv4(),
+                tradeId,
+                userId: p.userId,
+                message: `Trade status updated to ${newStatus} by ${user.username}`,
+                createdAt: new Date()
+              });
+            }
+          }));
 
-        return successResponse({ trade: updatedTrade });
+          return { trade: updatedTrade, participants };
+        });
+
+        return successResponse(result);
       }
 
       // Existing endpoints for participants and items...
@@ -161,26 +183,38 @@ export async function POST(event: RequestEvent) {
           return errorResponse('User ID is required', 400);
         }
 
-        // Check if user is already a participant
-        const [existingParticipant] = await db
-          .select()
-          .from(tradeParticipant)
-          .where(and(
-            eq(tradeParticipant.tradeId, tradeId),
-            eq(tradeParticipant.userId, body.userId)
-          ));
+        const result = await db.transaction(async (tx) => {
+          // Check if user is already a participant
+          const [existingParticipant] = await tx
+            .select()
+            .from(tradeParticipant)
+            .where(and(
+              eq(tradeParticipant.tradeId, tradeId),
+              eq(tradeParticipant.userId, body.userId)
+            ));
 
-        if (existingParticipant) {
-          return errorResponse('User is already a participant in this trade', 400);
-        }
+          if (existingParticipant) {
+            throw new Error('User is already a participant in this trade');
+          }
 
-        const [newParticipant] = await db.insert(tradeParticipant).values({
-          id: uuidv4(),
-          tradeId,
-          userId: body.userId
-        }).returning();
+          const [newParticipant] = await tx.insert(tradeParticipant).values({
+            id: uuidv4(),
+            tradeId,
+            userId: body.userId
+          }).returning();
 
-        return successResponse({ participant: newParticipant });
+          await tx.insert(tradeNotification).values({
+            id: uuidv4(),
+            tradeId,
+            userId: body.userId,
+            message: `You have been added to a trade by ${user.username}`,
+            createdAt: new Date()
+          });
+
+          return { participant: newParticipant };
+        });
+
+        return successResponse(result);
       }
 
       if (path.includes('/items')) {
@@ -189,24 +223,46 @@ export async function POST(event: RequestEvent) {
           return errorResponse('Invalid item details', 400);
         }
 
-        // Verify user owns the card
-        const [userCardDetails] = await db
-          .select()
-          .from(userCard)
-          .where(eq(userCard.id, body.userCardId));
-        
-        if (!userCardDetails || userCardDetails.userId !== user.id) {
-          return errorResponse('Card not found or not owned by user', 403);
-        }
+        const result = await db.transaction(async (tx) => {
+          // Verify user owns the card
+          const [userCardDetails] = await tx
+            .select()
+            .from(userCard)
+            .where(eq(userCard.id, body.userCardId));
+          
+          if (!userCardDetails || userCardDetails.userId !== user.id) {
+            throw new Error('Card not found or not owned by user');
+          }
 
-        const [newItem] = await db.insert(tradeItem).values({
-          id: uuidv4(),
-          tradeId,
-          userCardId: body.userCardId,
-          quantity: body.quantity
-        }).returning();
+          const [newItem] = await tx.insert(tradeItem).values({
+            id: uuidv4(),
+            tradeId,
+            userCardId: body.userCardId,
+            quantity: body.quantity
+          }).returning();
 
-        return successResponse({ item: newItem });
+          // Notify other participants
+          const participants = await tx
+            .select()
+            .from(tradeParticipant)
+            .where(eq(tradeParticipant.tradeId, tradeId));
+
+          await Promise.all(participants.map(async (p) => {
+            if (p.userId !== user.id) {
+              await tx.insert(tradeNotification).values({
+                id: uuidv4(),
+                tradeId,
+                userId: p.userId,
+                message: `${user.username} added a card to the trade`,
+                createdAt: new Date()
+              });
+            }
+          }));
+
+          return { item: newItem };
+        });
+
+        return successResponse(result);
       }
     }
 
@@ -246,7 +302,7 @@ export async function GET(event: RequestEvent) {
       const trades = await db
         .select()
         .from(trade)
-        .where(eq(trade.id, tradeIds))
+        .where(inArray(trade.id, tradeIds))
         .orderBy(desc(trade.updatedAt));
 
       return successResponse({ trades });

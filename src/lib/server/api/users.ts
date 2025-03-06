@@ -35,8 +35,8 @@ export async function POST({ request }: RequestEvent) {
       }
 
       const sanitizedIdentifier = sanitizeString(identifier);
-      const { user, session } = await login(sanitizedIdentifier, password);
-      return successResponse({ user, session });
+      const result = await login(sanitizedIdentifier, password, { request });
+      return successResponse(result);
     }
   } catch (error) {
     if (error instanceof Error) {

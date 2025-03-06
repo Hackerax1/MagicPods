@@ -10,18 +10,18 @@ import { sanitizeString } from '$lib/server/utils/security/sanitize';
 
 import type { RequestEvent } from '@sveltejs/kit';
 
-export async function POST({ request }: RequestEvent) {
+export async function POST(event: RequestEvent) {
     try {
         // Apply rate limiting
-        await standardRateLimit(request);
+        await standardRateLimit(event);
 
         // Validate authentication
-        const user = await validateToken(request);
+        const user = await validateToken(event);
         if (!user) {
             return errorResponse(ApiErrors.UNAUTHORIZED, 401);
         }
 
-        const { action, deckName, deckId, win, loss } = await request.json();
+        const { action, deckName, deckId, win, loss } = await event.request.json();
 
         // Input validation
         if (!action || (action !== 'createDeck' && action !== 'updateDeck')) {
@@ -42,8 +42,12 @@ export async function POST({ request }: RequestEvent) {
                 userId: user.id
             };
 
-            await db.insert(deck).values(newDeck);
-            return successResponse({ deck: newDeck });
+            const result = await db.transaction(async (tx) => {
+                const [newDeckRecord] = await tx.insert(deck).values(newDeck).returning();
+                return deck;
+            });
+
+            return successResponse({ deck: result });
         }
 
         if (action === 'updateDeck') {
@@ -81,18 +85,18 @@ export async function POST({ request }: RequestEvent) {
     }
 }
 
-export async function GET({ url, request }: RequestEvent) {
+export async function GET(event: RequestEvent) {
     try {
         // Apply rate limiting
-        await standardRateLimit(request);
+        await standardRateLimit(event);
 
         // Validate authentication
-        const user = await validateToken(request);
+        const user = await validateToken(event);
         if (!user) {
             return errorResponse(ApiErrors.UNAUTHORIZED, 401);
         }
 
-        const deckId = url.searchParams.get('deckId');
+        const deckId = event.url.searchParams.get('deckId');
         if (!deckId) {
             return errorResponse('Deck ID is required', 400);
         }

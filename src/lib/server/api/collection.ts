@@ -10,18 +10,18 @@ import { Readable } from 'stream';
 
 import type { RequestEvent } from '@sveltejs/kit';
 
-export async function POST({ request }: RequestEvent) {
+export async function POST(event: RequestEvent) {
   try {
     // Apply rate limiting
-    await standardRateLimit(request);
+    await standardRateLimit(event);
 
     // Validate authentication
-    const user = await validateToken(request);
+    const user = await validateToken(event);
     if (!user) {
       return errorResponse(ApiErrors.UNAUTHORIZED, 401);
     }
 
-    const { cardName, csvFile } = await request.json();
+    const { cardName, csvFile } = await event.request.json();
 
     if (!cardName && !csvFile) {
       return errorResponse('Either cardName or csvFile is required', 400);
@@ -41,9 +41,18 @@ export async function POST({ request }: RequestEvent) {
     if (csvFile) {
       try {
         const cards = await processCSV(csvFile, user.id);
-        return successResponse({ cards });
+        const failedCards = cards.filter(card => card.error);
+        const successfulCards = cards.filter(card => !card.error);
+        
+        if (failedCards.length > 0) {
+          return successResponse({ 
+            cards: successfulCards,
+            errors: failedCards.map(c => ({ name: c.name, error: c.error }))
+          });
+        }
+        return successResponse({ cards: successfulCards });
       } catch (error) {
-        return errorResponse('Error processing CSV file', 400);
+        return errorResponse('Error processing CSV file: ' + (error instanceof Error ? error.message : 'Unknown error'), 400);
       }
     }
   } catch (error) {
