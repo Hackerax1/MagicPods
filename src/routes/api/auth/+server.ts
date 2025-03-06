@@ -3,6 +3,7 @@ import { successResponse, errorResponse } from '$lib/server/utils/apiResponse';
 import { standardRateLimit } from '$lib/server/utils/security/rateLimit';
 import { register, login, logout, validateToken } from '$lib/server/auth';
 import { sanitizeString } from '$lib/server/utils/security/sanitize';
+import { generateResetToken, sendResetEmail } from '$lib/server/utils/security/email';
 
 export async function POST(event: RequestEvent) {
   try {
@@ -10,7 +11,7 @@ export async function POST(event: RequestEvent) {
     
     const { action, email, username, password, identifier } = await event.request.json();
 
-    if (!action || (action !== 'register' && action !== 'login' && action !== 'logout')) {
+    if (!action || (action !== 'register' && action !== 'login' && action !== 'logout' && action !== 'forgotPassword')) {
       return errorResponse('Invalid action', 400);
     }
 
@@ -41,6 +42,10 @@ export async function POST(event: RequestEvent) {
       await logout(event);
       return successResponse({ success: true });
     }
+
+    if (action === 'forgotPassword') {
+      return _forgotPassword(event);
+    }
   } catch (error) {
     return errorResponse(error instanceof Error ? error.message : 'Server error', 500);
   }
@@ -53,5 +58,22 @@ export async function GET(event: RequestEvent) {
     return successResponse({ user });
   } catch (error) {
     return successResponse({ user: null });
+  }
+}
+
+export async function _forgotPassword(event: RequestEvent) {
+  try {
+    const { email } = await event.request.json();
+    if (!email) {
+      return errorResponse('Email is required', 400);
+    }
+
+    // Generate a password reset token and send it via email
+    const resetToken = generateResetToken(email);
+    await sendResetEmail(email, resetToken);
+
+    return successResponse({ message: 'Password reset email sent' });
+  } catch (error) {
+    return errorResponse(error instanceof Error ? error.message : 'Server error', 500);
   }
 }

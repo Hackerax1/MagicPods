@@ -10,6 +10,9 @@ COPY . /app
 # Install any needed packages specified in requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Remove build dependencies to reduce image size
+RUN apt-get purge -y --auto-remove && rm -rf /var/lib/apt/lists/*
+
 # Make port 5000 available to the world outside this container
 EXPOSE 5000
 

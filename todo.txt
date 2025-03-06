@@ -1,5 +1,7 @@
 ## HIGH PRIORITY
 
+*   [ ] **Investigate and Fix Failing Security Tests:** The security tests are consistently failing; investigate the cause and implement fixes.
+*   [ ] **Implement Card Scanner Microservice:** Refactor the card scanner functionality into a separate, user-facing application.
 
 ## MEDIUM PRIORITY
 
@@ -10,8 +12,8 @@
 *   [ ] **Performance Optimization**
     *   [ ] **Lazy Loading:** Implement lazy loading for images and other resources.
     *   [ ] **Optimize Dockerfile:** Improve Dockerfile for card scanner microservice to reduce image size and build time.
-*   [ ] **Testing**
-    *   [ ] **Expand End-to-End Tests:** Create Playwright tests for key workflows beyond authentication and deck functionality (e.g., adding cards to collection, creating pods).
+*   [x] **Testing**
+    *   [x] **Expand End-to-End Tests:** Create Playwright tests for key workflows beyond authentication and deck functionality (e.g., adding cards to collection, creating pods).
 *   [ ] **Implement Trading System**
     *   [ ] **Trade Offers:** Allow users to create trade offers for cards.
     *   [ ] **Trade Notifications:** Notify users when they receive a trade offer.
@@ -24,7 +26,7 @@
     *   [ ] **Design System/Style Guide:** Define a color palette, typography, and spacing scale. Document UI patterns for consistency.
     *   [ ] **Component Library:** Create reusable UI components (buttons, inputs, cards, etc.).
     *   [ ] **Accessibility (A11y):** Use semantic HTML. Provide alt text for images. Ensure sufficient color contrast. Make the application keyboard-navigable.
-    *   [ ] **Empty States:** Handle empty states with helpful messages and calls to action.
+    *   [x] **Empty States:** Handle empty states with helpful messages and calls to action.
     *   [ ] **Card Images:** Optimize card images (consider Cloudinary or Imgix).
     *   [ ] **Drag and Drop:** (Deck Building) Implement drag-and-drop functionality for adding/removing cards.
 *   [ ] **Testing**
@@ -32,3 +34,11 @@
 *   [ ] **Performance Optimization**
     *   [ ] **Code Splitting:** Split your code into smaller chunks for faster initial load times.
     *   [ ] **Caching:** Implement caching strategies for frequently accessed data.
+
+## CONSISTENT UPKEEP
+
+*   [ ] **Dependency Updates:** Regularly update dependencies to their latest versions to patch security vulnerabilities and improve performance.
+*   [ ] **Code Reviews:** Conduct regular code reviews to maintain code quality and identify potential bugs.
+*   [ ] **Performance Monitoring:** Monitor application performance and identify areas for optimization.
+*   [ ] **Security Audits:** Perform periodic security audits to identify and address potential security vulnerabilities.
+*   [ ] **Database Maintenance:** Regularly maintain the database by optimizing queries, cleaning up old data, and performing backups.
