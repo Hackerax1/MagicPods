@@ -30,6 +30,7 @@ vite.config.ts.timestamp-*
 
 # Data
 /data/
+/src/data/
 
 # IDE and Editor files
 .idea/
