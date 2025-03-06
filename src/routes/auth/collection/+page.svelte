@@ -53,7 +53,12 @@
   <div class="collection-list">
     {#each collection as card}
       <div class="card-item">
-        <img src={card.image_uris?.small} alt={card.name} />
+        <img 
+          src={card.image_uris?.small} 
+          alt={card.name} 
+          loading="lazy"
+          fetchpriority="low"
+        />
         <span>{card.name}</span>
       </div>
     {/each}
