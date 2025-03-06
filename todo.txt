@@ -1,19 +1,12 @@
 ## HIGH PRIORITY
 
-*   [ ] **Security:**
-    *   [ ] **Automate Security Audits:** Add npm script for security audits and integrate with CI/CD pipeline. Use existing audit.ts utility.
-*   [ ] **Card Scanner Authentication:** Update card scanner microservice to use the new JWT authentication.
-*   [x] **Responsiveness and Mobile-Friendliness**
-    *   [ ] **Review Viewport Meta Tag:** (src/app.html) - Ensure it's correctly set up.
-    *   [x] **Component Audit:** Inspect all components (Card.svelte, DeckBuilder.svelte, etc.) for responsiveness. Use Tailwind's responsive modifiers (sm:, md:, lg:, xl:) effectively. Ensure text is readable on smaller screens. Check for horizontal scrolling issues.
-    *   [x] **Flexible Layouts:** Replace fixed widths with flexible units (%, vw, vh). Utilize flexbox and grid layouts for adaptability.
 
 ## MEDIUM PRIORITY
 
 *   [ ] **Authentication Improvements**
     *   [ ] **Password Reset:** Implement "forgot password" functionality.
-*   [ ] **Code Improvements**
-    *   [ ] **API Endpoint Structure:** Review and refactor API endpoints in (src/lib/server/api/) to ensure optimal structure and maintainability.
+*   [x] **Code Improvements**
+    *   [x] **API Endpoint Structure:** Review and refactor API endpoints in (src/lib/server/api/) to ensure optimal structure and maintainability.
 *   [ ] **Performance Optimization**
     *   [ ] **Lazy Loading:** Implement lazy loading for images and other resources.
     *   [ ] **Optimize Dockerfile:** Improve Dockerfile for card scanner microservice to reduce image size and build time.

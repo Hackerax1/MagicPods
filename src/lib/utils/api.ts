@@ -86,3 +86,53 @@ export async function addCardToCollection(card: any) {
     return await response.json();
 }
 
+export async function getAuthToken() {
+    // This should return the JWT token from your auth store or local storage
+    const userDataStr = localStorage.getItem('userData');
+    if (!userDataStr) return null;
+    try {
+        const userData = JSON.parse(userDataStr);
+        return userData.token;
+    } catch {
+        return null;
+    }
+}
+
+export async function scanCard(imageFile: File) {
+    const token = await getAuthToken();
+    if (!token) {
+        throw new Error('Authentication required');
+    }
+
+    const formData = new FormData();
+    formData.append('image', imageFile);
+
+    const response = await fetch('http://localhost:5000/scan', {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${token}`
+        },
+        body: formData
+    });
+
+    if (!response.ok) {
+        if (response.status === 401) {
+            throw new Error('Authentication failed');
+        }
+        throw new Error('Failed to scan card');
+    }
+
+    const result = await response.json();
+    
+    // If a card was successfully scanned, add it to the collection
+    if (result.text) {
+        try {
+            await addCardToCollection(result.text);
+        } catch (error) {
+            console.warn('Card scanned but failed to add to collection:', error);
+        }
+    }
+
+    return result;
+}
+

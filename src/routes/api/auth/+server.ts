@@ -1,106 +1,57 @@
-import { json } from '@sveltejs/kit';
-import { register, login, logout, validateToken } from '$lib/server/auth';
 import type { RequestEvent } from '@sveltejs/kit';
-import { sanitizeObject, validateAndSanitizeEmail, validateAndSanitizeUsername } from '$lib/server/utils/security/sanitize';
-import { authRateLimit, standardRateLimit } from '$lib/server/utils/security/rateLimit';
+import { successResponse, errorResponse } from '$lib/server/utils/apiResponse';
+import { standardRateLimit } from '$lib/server/utils/security/rateLimit';
+import { register, login, logout, validateToken } from '$lib/server/auth';
+import { sanitizeString } from '$lib/server/utils/security/sanitize';
 
-/**
- * Consolidated authentication API endpoint.
- * Handles login, register, me (current user), and logout actions via POST requests
- * with an 'action' parameter.
- */
 export async function POST(event: RequestEvent) {
-  const { request } = event;
-  
-  // Apply rate limiting first to prevent abuse
-  await authRateLimit(event);
-  
-  // Parse and sanitize request data
-  const rawData = await request.json();
-  const data = sanitizeObject(rawData);
-  const { action } = data;
-
   try {
-    switch (action) {
-      case 'login':
-        const { identifier, password } = data;
-        if (!identifier || !password) {
-          return json({ 
-            success: false, 
-            error: 'Missing credentials' 
-          }, { status: 400 });
-        }
-        
-        // Sanitized identifier (could be email or username)
-        const sanitizedIdentifier = identifier.toString().trim();
-        
-        const loginResult = await login(sanitizedIdentifier, password, event);
-        return json(loginResult);
+    await standardRateLimit(event);
+    
+    const { action, email, username, password, identifier } = await event.request.json();
 
-      case 'register':
-        const { email, username, password: registerPassword } = data;
-        
-        // Validate and sanitize inputs
-        const sanitizedEmail = validateAndSanitizeEmail(email);
-        const sanitizedUsername = validateAndSanitizeUsername(username);
+    if (!action || (action !== 'register' && action !== 'login' && action !== 'logout')) {
+      return errorResponse('Invalid action', 400);
+    }
 
-        if (!sanitizedEmail) {
-          return json({ success: false, error: 'Invalid email address' }, { status: 400 });
-        }
-        
-        if (!sanitizedUsername) {
-          return json({ success: false, error: 'Invalid username. Use 3-20 alphanumeric characters and underscores only.' }, { status: 400 });
-        }
-        
-        if (!registerPassword) {
-          return json({ success: false, error: 'Password is required' }, { status: 400 });
-        }
-        
-        const registerResult = await register(sanitizedEmail, sanitizedUsername, registerPassword);
-        return json({
-          success: true,
-          user: registerResult
-        });
+    if (action === 'register') {
+      if (!email || !username || !password) {
+        return errorResponse('Email, username, and password are required', 400);
+      }
 
-      case 'logout':
-        await logout(event);
-        return json({ success: true });
+      const sanitizedEmail = sanitizeString(email);
+      const sanitizedUsername = sanitizeString(username);
+      const result = await register(sanitizedEmail, sanitizedUsername, password);
+      
+      return successResponse({ user: result });
+    }
 
-      case 'me':
-        const user = await validateToken(event);
-        return json({ user });
+    if (action === 'login') {
+      if (!identifier || !password) {
+        return errorResponse('Identifier and password are required', 400);
+      }
 
-      default:
-        return json({ 
-          success: false, 
-          error: 'Invalid action' 
-        }, { status: 400 });
+      const sanitizedIdentifier = sanitizeString(identifier);
+      const result = await login(sanitizedIdentifier, password, event);
+      
+      return successResponse(result);
+    }
+
+    if (action === 'logout') {
+      await logout(event);
+      return successResponse({ success: true });
     }
   } catch (error) {
-    console.error(`Auth error (${action}):`, error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    const statusCode = errorMessage.includes('not found') || errorMessage.includes('invalid') ? 401 : 500;
-    
-    return json({ 
-      success: false, 
-      error: errorMessage 
-    }, { status: statusCode });
+    return errorResponse(error instanceof Error ? error.message : 'Server error', 500);
   }
 }
 
-/**
- * GET handler specifically for retrieving the current user session
- * (equivalent to the 'me' action in the POST handler)
- */
 export async function GET(event: RequestEvent) {
-  // Apply standard rate limit for session checks
-  await standardRateLimit(event);
-  
   try {
+    await standardRateLimit(event);
     const user = await validateToken(event);
-    return json({ user });
+    return successResponse({ user });
   } catch (error) {
-    console.error('Error fetching current user:', error);
-    return json({ user: null });
+    return successResponse({ user: null });
   }
 }

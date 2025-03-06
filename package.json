@@ -20,7 +20,10 @@
 		"db:push": "drizzle-kit push",
 		"db:migrate": "drizzle-kit migrate",
 		"db:studio": "drizzle-kit studio",
-		"security:audit": "node scripts/security-audit.js"
+		"security:audit": "npm run build:security && node scripts/security-audit.js",
+		"security:audit:ci": "npm run security:audit && npm audit --audit-level=high",
+		"precommit": "npm run lint && npm run test && npm run security:audit",
+		"build:security": "node scripts/build-security-utils.js"
 	},
 	"devDependencies": {
 		"@playwright/test": "^1.49.1",
@@ -32,7 +35,9 @@
 		"@types/bcryptjs": "^2.4.6",
 		"@types/node-fetch": "^2.6.12",
 		"@types/uuid": "^10.0.0",
+		"dotenv": "^16.4.7",
 		"drizzle-kit": "^0.30.2",
+		"esbuild": "^0.25.0",
 		"jsdom": "^26.0.0",
 		"prettier": "^3.4.2",
 		"prettier-plugin-svelte": "^3.3.3",

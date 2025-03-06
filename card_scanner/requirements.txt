@@ -1,3 +1,5 @@
 Flask
 pytesseract
 Pillow
+PyJWT
+python-dotenv

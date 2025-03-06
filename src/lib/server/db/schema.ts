@@ -76,6 +76,19 @@ export const trade = pgTable('trade', {
 	updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).notNull()
 });
 
+export const tradeNotification = pgTable('trade_notification', {
+    id: text('id').primaryKey(),
+    tradeId: text('trade_id')
+        .notNull()
+        .references(() => trade.id),
+    userId: text('user_id')
+        .notNull()
+        .references(() => user.id),
+    message: text('message').notNull(),
+    read: integer('read').notNull().default(0),
+    createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull()
+});
+
 export const tradeParticipant = pgTable('trade_participant', {
 	id: text('id').primaryKey(),
 	tradeId: text('trade_id')
@@ -107,3 +120,4 @@ export type UserCard = typeof userCard.$inferSelect;
 export type Trade = typeof trade.$inferSelect;
 export type TradeParticipant = typeof tradeParticipant.$inferSelect;
 export type TradeItem = typeof tradeItem.$inferSelect;
+export type TradeNotification = typeof tradeNotification.$inferSelect;
