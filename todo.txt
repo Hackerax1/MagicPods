@@ -3,7 +3,7 @@
 *   [ ] **Investigate and Fix Failing Security Tests:** The security tests are consistently failing; investigate the cause and implement fixes.
 *   [ ] **Remove Dependency on drizzle-kit:** Refactor code to eliminate the use of drizzle-kit.
 *   [ ] **Remove Dependency on @sveltejs/kit:** Refactor code to eliminate the use of @sveltejs/kit.
-*   [ ] **Remove Dependency on @sveltejs/adapter-auto:** Refactor code to eliminate the use of @sveltejs/adapter-auto.
+*   [X] **Remove Dependency on @sveltejs/adapter-auto:** Refactor code to eliminate the use of @sveltejs/adapter-auto.
 *   [ ] **Implement Card Scanner Microservice:** Refactor the card scanner functionality into a separate, user-facing application.
 
 ## MEDIUM PRIORITY
@@ -30,8 +30,8 @@
     *   [ ] **Component Library:** Create reusable UI components (buttons, inputs, cards, etc.).
     *   [ ] **Accessibility (A11y):** Use semantic HTML. Provide alt text for images. Ensure sufficient color contrast. Make the application keyboard-navigable.
     *   [x] **Empty States:** Handle empty states with helpful messages and calls to action.
-    *   [ ] **Card Images:** Optimize card images (consider Cloudinary or Imgix).
-    *   [ ] **Drag and Drop:** (Deck Building) Implement drag-and-drop functionality for adding/removing cards.
+    *   [X] **Card Images:** Optimize card images (consider Cloudinary or Imgix).
+    *   [X] **Drag and Drop:** (Deck Building) Implement drag-and-drop functionality for adding/removing cards.
 *   [ ] **Testing**
     *   [ ] **Accessibility Tests:** Integrate accessibility testing into your CI/CD pipeline.
 *   [ ] **Performance Optimization**
@@ -45,4 +45,3 @@
 *   [ ] **Performance Monitoring:** Monitor application performance and identify areas for optimization.
 *   [ ] **Security Audits:** Perform periodic security audits to identify and address potential security vulnerabilities.
 *   [ ] **Database Maintenance:** Regularly maintain the database by optimizing queries, cleaning up old data, and performing backups.
-

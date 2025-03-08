@@ -1,5 +1,6 @@
 <script lang="ts">
   import { fetchCard } from '$lib/utils/scryfall';
+  import { getCardImageUrls } from '$lib/utils/image-optimizer';
 
   interface Card {
     name: string;
@@ -119,7 +120,7 @@
           <div class="w-full md:w-auto flex justify-center">
             <div class="relative group w-full max-w-sm md:max-w-xs">
               <img 
-                src={cardData.image_uris.normal} 
+                src={getCardImageUrls(cardData.image_uris.normal).normal} 
                 alt={cardData.name}
                 class="rounded-lg shadow-sm hover:shadow-lg transition-shadow w-full h-auto object-contain"
                 loading="lazy"
@@ -127,7 +128,7 @@
               />
               <div class="absolute inset-0 bg-black opacity-0 group-hover:opacity-20 transition-opacity rounded-lg flex items-center justify-center">
                 <a 
-                  href={cardData.image_uris.normal} 
+                  href={getCardImageUrls(cardData.image_uris.normal).normal} 
                   target="_blank" 
                   rel="noopener noreferrer"
                   class="opacity-0 group-hover:opacity-100 bg-white text-gray-800 px-3 py-2 rounded-md text-sm font-medium transition-opacity transform hover:scale-105"
