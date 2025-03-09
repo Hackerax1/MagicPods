@@ -104,8 +104,8 @@ export const GET = async (event: RequestEvent) => {
       console.error('Image optimization error:', err);
       throw error(500, 'Failed to optimize image');
     }
-  } catch (err) {
-    if (err.status === 429) {
+  } catch (err: unknown) {
+    if (err && typeof err === 'object' && 'status' in err && err.status === 429) {
       return new Response('Too many requests, please try again later.', {
         status: 429,
         headers: {
