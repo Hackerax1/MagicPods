@@ -29,6 +29,24 @@ export type SecurityAuditResult = {
 };
 
 /**
+ * Recursively gets all files in a directory
+ */
+function getAllFiles(dirPath: string, arrayOfFiles: string[] = []): string[] {
+  const files = fs.readdirSync(dirPath);
+
+  files.forEach((file) => {
+    const filePath = path.join(dirPath, file);
+    if (fs.statSync(filePath).isDirectory()) {
+      arrayOfFiles = getAllFiles(filePath, arrayOfFiles);
+    } else {
+      arrayOfFiles.push(filePath);
+    }
+  });
+
+  return arrayOfFiles;
+}
+
+/**
  * Check for hardcoded secrets in files
  */
 export async function checkHardcodedSecrets(): Promise<SecurityVulnerability[]> {
@@ -73,21 +91,20 @@ export async function checkXssVulnerabilities(): Promise<SecurityVulnerability[]
     
     // Find all js/ts files in the API directory
     if (fs.existsSync(apiDir)) {
-      const apiFiles = fs.readdirSync(apiDir, { recursive: true })
-        .filter((file: any) => file.toString().endsWith('.ts'));
+      const apiFiles = getAllFiles(apiDir).filter(file => file.endsWith('.ts'));
       
-      for (const file of apiFiles) {
-        const filePath = path.join(apiDir, file.toString());
+      for (const filePath of apiFiles) {
         const content = fs.readFileSync(filePath, 'utf8');
+        const relativePath = path.relative(apiDir, filePath);
         
         // If the file handles user input but doesn't use sanitization
         if (content.includes('body.') || content.includes('params.') || content.includes('query.')) {
           if (!content.includes(sanitizeImportPattern) && !content.includes(sanitizeFunctionPattern)) {
             vulnerabilities.push({
-              id: `XSS-RISK-${file}`,
+              id: `XSS-RISK-${relativePath}`,
               severity: 'medium',
               description: 'User inputs should be sanitized to prevent XSS attacks',
-              affectedComponent: `API endpoint: ${file}`,
+              affectedComponent: `API endpoint: ${relativePath}`,
               recommendation: 'Use sanitizeString() from the security utils on all user inputs',
               status: 'open'
             });
@@ -114,12 +131,11 @@ export async function checkRateLimiting(): Promise<SecurityVulnerability[]> {
     const rateLimitPattern = "rateLimit";
     
     if (fs.existsSync(routesDir)) {
-      const apiFiles = fs.readdirSync(routesDir, { recursive: true })
-        .filter((file: any) => file.toString().endsWith('+server.ts'));
+      const apiFiles = getAllFiles(routesDir).filter(file => file.endsWith('+server.ts'));
       
-      for (const file of apiFiles) {
-        const filePath = path.join(routesDir, file.toString());
+      for (const filePath of apiFiles) {
         const content = fs.readFileSync(filePath, 'utf8');
+        const relativePath = path.relative(routesDir, filePath);
         
         // If the file doesn't use rate limiting
         if (content.includes('POST') || 
@@ -127,10 +143,10 @@ export async function checkRateLimiting(): Promise<SecurityVulnerability[]> {
             content.includes('DELETE')) {
           if (!content.includes(rateLimitPattern)) {
             vulnerabilities.push({
-              id: `RATE-LIMIT-MISSING-${file}`,
+              id: `RATE-LIMIT-MISSING-${relativePath}`,
               severity: 'medium',
               description: 'API endpoints need rate limiting to prevent abuse',
-              affectedComponent: `API endpoint: ${file}`,
+              affectedComponent: `API endpoint: ${relativePath}`,
               recommendation: 'Apply rateLimit middleware to sensitive endpoints',
               status: 'open'
             });
@@ -153,29 +169,55 @@ export async function checkNpmVulnerabilities(): Promise<SecurityVulnerability[]
   
   try {
     // Run npm audit in JSON format
-    const npmAuditOutput = execSync('npm audit --json', { stdio: 'pipe' }).toString();
-    const auditResult = JSON.parse(npmAuditOutput);
+    const npmAuditOutput = execSync('npm audit --json', { stdio: 'pipe', encoding: 'utf-8' });
+    
+    // Create security-audits directory if it doesn't exist
+    const auditDir = path.join(process.cwd(), 'security-audits');
+    if (!fs.existsSync(auditDir)) {
+      fs.mkdirSync(auditDir, { recursive: true });
+    }
     
     // Save raw npm audit output
     const timestamp = new Date().toISOString().replace(/:/g, '-');
-    const auditFilePath = path.join(process.cwd(), 'security-audits', `npm-audit-${timestamp}.json`);
+    const auditFilePath = path.join(auditDir, `npm-audit-${timestamp}.json`);
     fs.writeFileSync(auditFilePath, npmAuditOutput);
     
-    // Process vulnerabilities
-    if (auditResult.vulnerabilities) {
-      for (const [pkg, info] of Object.entries(auditResult.vulnerabilities)) {
-        const vulnInfo = info as any;
-        if (vulnInfo.severity && vulnInfo.via && vulnInfo.via.length > 0) {
-          vulnerabilities.push({
-            id: `NPM-VULN-${pkg}`,
-            severity: vulnInfo.severity as any,
-            description: `Vulnerability in package ${pkg}: ${vulnInfo.via[0].title || 'Unknown issue'}`,
-            affectedComponent: `npm package: ${pkg}@${vulnInfo.version}`,
-            recommendation: `Update ${pkg} to ${vulnInfo.fixAvailable ? vulnInfo.fixAvailable.version : 'latest version'}`,
-            status: 'open'
-          });
+    try {
+      // Try to parse the output
+      const auditResult = JSON.parse(npmAuditOutput);
+      
+      // Process vulnerabilities if they exist
+      if (auditResult && auditResult.vulnerabilities) {
+        for (const [pkg, info] of Object.entries(auditResult.vulnerabilities)) {
+          const vulnInfo = info as any;
+          if (vulnInfo.severity && vulnInfo.via && Array.isArray(vulnInfo.via) && vulnInfo.via.length > 0) {
+            vulnerabilities.push({
+              id: `NPM-VULN-${pkg}`,
+              severity: vulnInfo.severity as any,
+              description: `Vulnerability in package ${pkg}: ${
+                (typeof vulnInfo.via[0] === 'object' && vulnInfo.via[0].title) ? 
+                vulnInfo.via[0].title : 'Unknown issue'
+              }`,
+              affectedComponent: `npm package: ${pkg}@${vulnInfo.version || 'unknown'}`,
+              recommendation: `Update ${pkg} to ${
+                (vulnInfo.fixAvailable && vulnInfo.fixAvailable.version) ? 
+                vulnInfo.fixAvailable.version : 'latest version'
+              }`,
+              status: 'open'
+            });
+          }
         }
       }
+    } catch (parseError) {
+      console.error('Error parsing npm audit output:', parseError);
+      vulnerabilities.push({
+        id: 'NPM-AUDIT-PARSE-ERROR',
+        severity: 'low',
+        description: 'Failed to parse npm audit output',
+        affectedComponent: 'package.json',
+        recommendation: 'Run npm audit manually to check for vulnerabilities',
+        status: 'open'
+      });
     }
   } catch (error) {
     console.error('Error checking for npm vulnerabilities:', error);
@@ -273,20 +315,24 @@ export async function runSecurityAudit(): Promise<SecurityAuditResult> {
  * Save audit results to a file for historical tracking
  */
 export async function saveAuditResults(result: SecurityAuditResult, filePath: string): Promise<void> {
-  const dir = path.dirname(filePath);
-  
-  // Create directory if it doesn't exist
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
+  try {
+    const dir = path.dirname(filePath);
+    
+    // Create directory if it doesn't exist
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    
+    // Save the JSON result
+    fs.writeFileSync(filePath, JSON.stringify(result, null, 2));
+    
+    // Create a markdown report for better readability
+    const reportPath = filePath.replace('.json', '.md');
+    const markdownReport = generateMarkdownReport(result);
+    fs.writeFileSync(reportPath, markdownReport);
+  } catch (error) {
+    console.error('Error saving audit results:', error);
   }
-  
-  // Save the JSON result
-  fs.writeFileSync(filePath, JSON.stringify(result, null, 2));
-  
-  // Create a markdown report for better readability
-  const reportPath = filePath.replace('.json', '.md');
-  const markdownReport = generateMarkdownReport(result);
-  fs.writeFileSync(reportPath, markdownReport);
 }
 
 /**
@@ -347,10 +393,21 @@ export function generateMarkdownReport(result: SecurityAuditResult): string {
 export async function scheduledSecurityAudit(): Promise<SecurityAuditResult> {
   const result = await runSecurityAudit();
   
-  // Save results to a timestamped file in a security-audits directory
-  const timestamp = new Date().toISOString().replace(/:/g, '-');
-  const filePath = path.join(process.cwd(), 'security-audits', `audit-${timestamp}.json`);
+  try {
+    // Create security-audits directory if it doesn't exist
+    const auditDir = path.join(process.cwd(), 'security-audits');
+    if (!fs.existsSync(auditDir)) {
+      fs.mkdirSync(auditDir, { recursive: true });
+    }
+    
+    // Save results to a timestamped file
+    const timestamp = new Date().toISOString().replace(/:/g, '-');
+    const filePath = path.join(auditDir, `audit-${timestamp}.json`);
+    
+    await saveAuditResults(result, filePath);
+  } catch (error) {
+    console.error('Error in scheduled security audit:', error);
+  }
   
-  await saveAuditResults(result, filePath);
   return result;
 }

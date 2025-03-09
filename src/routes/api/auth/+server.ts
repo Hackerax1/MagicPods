@@ -4,6 +4,7 @@ import { standardRateLimit } from '$lib/server/utils/security/rateLimit';
 import { register, login, logout, validateToken } from '$lib/server/auth';
 import { sanitizeString } from '$lib/server/utils/security/sanitize';
 import { generateResetToken, sendResetEmail } from '$lib/server/utils/security/email';
+import { validatePassword } from '$lib/server/utils/security/password';
 
 export async function POST(event: RequestEvent) {
   try {
@@ -18,6 +19,12 @@ export async function POST(event: RequestEvent) {
     if (action === 'register') {
       if (!email || !username || !password) {
         return errorResponse('Email, username, and password are required', 400);
+      }
+
+      // Validate password strength
+      const passwordValidation = validatePassword(password);
+      if (!passwordValidation.valid) {
+        return errorResponse(passwordValidation.message, 400);
       }
 
       const sanitizedEmail = sanitizeString(email);

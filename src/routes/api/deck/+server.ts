@@ -5,86 +5,101 @@ import { db } from '$lib/server/db';
 import { deck } from '$lib/server/db/schema';
 import { eq } from 'drizzle-orm';
 import { sanitizeString } from '$lib/server/utils/security/sanitize';
+import { standardRateLimit } from '$lib/server/utils/security/rateLimit';
 import { v4 as uuidv4 } from 'uuid';
 
 export async function POST(event: RequestEvent) {
-  return withAuth(event, async (event, { user }) => {
-    const { action, deckName, deckId, win, loss } = await event.request.json();
+  try {
+    // Apply rate limiting
+    await standardRateLimit(event);
+    
+    return withAuth(event, async (event, { user }) => {
+      const { action, deckName, deckId, win, loss } = await event.request.json();
 
-    if (!action || (action !== 'createDeck' && action !== 'updateDeck')) {
-      return errorResponse('Invalid action', 400);
-    }
-
-    if (action === 'createDeck') {
-      if (!deckName) {
-        return errorResponse('Deck name is required', 400);
+      if (!action || (action !== 'createDeck' && action !== 'updateDeck')) {
+        return errorResponse('Invalid action', 400);
       }
 
-      const sanitizedName = sanitizeString(deckName);
-      const newDeck = {
-        id: uuidv4(),
-        name: sanitizedName,
-        win: 0,
-        loss: 0,
-        userId: user.id
-      };
+      if (action === 'createDeck') {
+        if (!deckName) {
+          return errorResponse('Deck name is required', 400);
+        }
 
-      await db.insert(deck).values(newDeck);
-      return successResponse({ deck: newDeck });
-    }
+        const sanitizedName = sanitizeString(deckName);
+        const newDeck = {
+          id: uuidv4(),
+          name: sanitizedName,
+          win: 0,
+          loss: 0,
+          userId: user.id
+        };
 
-    // Must be updateDeck at this point
-    if (!deckId) {
-      return errorResponse('Deck ID is required', 400);
-    }
+        await db.insert(deck).values(newDeck);
+        return successResponse({ deck: newDeck });
+      }
 
-    // Verify deck ownership
-    const [existingDeck] = await db
-      .select()
-      .from(deck)
-      .where(eq(deck.id, deckId));
+      // Must be updateDeck at this point
+      if (!deckId) {
+        return errorResponse('Deck ID is required', 400);
+      }
 
-    if (!existingDeck) {
-      return errorResponse('Deck not found', 404);
-    }
+      // Verify deck ownership
+      const [existingDeck] = await db
+        .select()
+        .from(deck)
+        .where(eq(deck.id, deckId));
 
-    if (existingDeck.userId !== user.id) {
-      return errorResponse('Not authorized to modify this deck', 403);
-    }
+      if (!existingDeck) {
+        return errorResponse('Deck not found', 404);
+      }
 
-    const updates: Record<string, any> = {};
-    if (deckName) updates.name = sanitizeString(deckName);
-    if (typeof win === 'number') updates.win = win;
-    if (typeof loss === 'number') updates.loss = loss;
+      if (existingDeck.userId !== user.id) {
+        return errorResponse('Not authorized to modify this deck', 403);
+      }
 
-    await db.update(deck)
-      .set(updates)
-      .where(eq(deck.id, deckId));
+      const updates: Record<string, any> = {};
+      if (deckName) updates.name = sanitizeString(deckName);
+      if (typeof win === 'number') updates.win = win;
+      if (typeof loss === 'number') updates.loss = loss;
 
-    return successResponse({ success: true });
-  });
+      await db.update(deck)
+        .set(updates)
+        .where(eq(deck.id, deckId));
+
+      return successResponse({ success: true });
+    });
+  } catch (error) {
+    return errorResponse(error instanceof Error ? error.message : 'Server error', 500);
+  }
 }
 
 export async function GET(event: RequestEvent) {
-  return withAuth(event, async (event, { user }) => {
-    const deckId = event.url.searchParams.get('deckId');
-    if (!deckId) {
-      return errorResponse('Deck ID is required', 400);
-    }
+  try {
+    // Apply rate limiting
+    await standardRateLimit(event);
+    
+    return withAuth(event, async (event, { user }) => {
+      const deckId = event.url.searchParams.get('deckId');
+      if (!deckId) {
+        return errorResponse('Deck ID is required', 400);
+      }
 
-    const [deckDetails] = await db
-      .select()
-      .from(deck)
-      .where(eq(deck.id, deckId));
+      const [deckDetails] = await db
+        .select()
+        .from(deck)
+        .where(eq(deck.id, deckId));
 
-    if (!deckDetails) {
-      return errorResponse('Deck not found', 404);
-    }
+      if (!deckDetails) {
+        return errorResponse('Deck not found', 404);
+      }
 
-    if (deckDetails.userId !== user.id) {
-      return errorResponse('Not authorized to view this deck', 403);
-    }
+      if (deckDetails.userId !== user.id) {
+        return errorResponse('Not authorized to view this deck', 403);
+      }
 
-    return successResponse({ deck: deckDetails });
-  });
+      return successResponse({ deck: deckDetails });
+    });
+  } catch (error) {
+    return errorResponse(error instanceof Error ? error.message : 'Server error', 500);
+  }
 }

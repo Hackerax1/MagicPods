@@ -8,8 +8,8 @@
 
 ## MEDIUM PRIORITY
 
-*   [ ] **Authentication Improvements**
-    *   [ ] **Password Reset:** Implement "forgot password" functionality.
+*   [X] **Authentication Improvements**
+    *   [X] **Password Reset:** Implement "forgot password" functionality.
 *   [x] **Code Improvements**
     *   [x] **API Endpoint Structure:** Review and refactor API endpoints in (src/lib/server/api/) to ensure optimal structure and maintainability.
 *   [ ] **Performance Optimization**
