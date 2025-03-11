@@ -17,11 +17,11 @@
     *   [X] **Optimize Dockerfile:** Improve Dockerfile for card scanner microservice to reduce image size and build time.
 *   [x] **Testing**
     *   [x] **Expand End-to-End Tests:** Create Playwright tests for key workflows beyond authentication and deck functionality (e.g., adding cards to collection, creating pods).
-*   [ ] **Implement Trading System**
-    *   [ ] **Trade Offers:** Allow users to create trade offers for cards.
+*   [X] **Implement Trading System**
+    *   [X] **Trade Offers:** Allow users to create trade offers for cards.
     *   [x] **Trade Notifications:** Notify users when they receive a trade offer.
     *   [x] **Trade History:** Maintain a history of completed trades.
-    *   [ ] **Multiway Trades in a Pod:** Enable multiway trades within a pod, allowing multiple users to participate in a single trade.
+    *   [X] **Multiway Trades in a Pod:** Enable multiway trades within a pod, allowing multiple users to participate in a single trade.
 
 ## LOW PRIORITY
 

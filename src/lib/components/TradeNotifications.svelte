@@ -1,8 +1,15 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { tradeStore } from '../stores/tradeStore';
+  // import { tradeStore } from '../stores/tradeStore';
   
-  let notifications = [];
+  interface Notification {
+    id: string;
+    message: string;
+    createdAt: string;
+    read: number;
+  }
+
+  let notifications: Notification[] = [];
   let loading = true;
 
   onMount(async () => {
@@ -53,12 +60,11 @@
         class="notification-btn {notification.read ? 'read' : 'unread'}"
         on:click={() => markAsRead(notification.id)}
         on:keydown={(e) => handleKeyDown(e, notification.id)}
-        role="listitem"
         aria-label="Trade notification: {notification.message}">
         <p class="message">{notification.message}</p>
         <p class="timestamp">{new Date(notification.createdAt).toLocaleString()}</p>
       </button>
-    {/each}
+      {/each}
   {/if}
 </div>
 
