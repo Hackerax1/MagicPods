@@ -1,7 +1,8 @@
 <!-- CardScanner.svelte -->
 <script lang="ts">
     import { scanCard } from '$lib/utils/api';
-    import { userStore } from '$lib/stores/userStore';
+    import userStore from '$lib/stores/userStore';
+    import type { User } from '$lib/stores/userStore';
     import { onDestroy, onMount } from 'svelte';
 
     let selectedImage: File | null = null;
@@ -14,7 +15,7 @@
     let liveScanning = false;
     let videoEl: HTMLVideoElement;
     let displayCanvas: HTMLCanvasElement;
-    let scanInterval: number;
+    let scanInterval: ReturnType<typeof setInterval> | undefined;
     let frameImageUrl: string = '';
     let liveScannedText = '';
     
@@ -24,14 +25,10 @@
     // Auth token for API calls
     let authToken = '';
     
-    onMount(() => {
-        const unsubscribe = userStore.subscribe(user => {
-            if (user && user.token) {
-                authToken = user.token;
-            }
-        });
-        
-        return () => unsubscribe();
+        const unsubscribe = userStore.subscribe((user: User | null) => {
+        if (user && user.token) {
+            authToken = user.token;
+        }
     });
 
     async function handleImageSelect(event: Event) {
