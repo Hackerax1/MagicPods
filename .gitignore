@@ -51,3 +51,5 @@ yarn-error.log*
 # Card scanner
 /card_scanner/
 /card_scanner
+card_scanner
+.venv

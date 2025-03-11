@@ -8,19 +8,19 @@
 
 ## MEDIUM PRIORITY
 
-*   [ ] **Authentication Improvements**
-    *   [ ] **Password Reset:** Implement "forgot password" functionality.
+*   [X] **Authentication Improvements**
+    *   [X] **Password Reset:** Implement "forgot password" functionality.
 *   [x] **Code Improvements**
     *   [x] **API Endpoint Structure:** Review and refactor API endpoints in (src/lib/server/api/) to ensure optimal structure and maintainability.
-*   [ ] **Performance Optimization**
-    *   [ ] **Lazy Loading:** Implement lazy loading for images and other resources.
-    *   [ ] **Optimize Dockerfile:** Improve Dockerfile for card scanner microservice to reduce image size and build time.
+*   [X] **Performance Optimization**
+    *   [X] **Lazy Loading:** Implement lazy loading for images and other resources.
+    *   [X] **Optimize Dockerfile:** Improve Dockerfile for card scanner microservice to reduce image size and build time.
 *   [x] **Testing**
     *   [x] **Expand End-to-End Tests:** Create Playwright tests for key workflows beyond authentication and deck functionality (e.g., adding cards to collection, creating pods).
 *   [ ] **Implement Trading System**
     *   [ ] **Trade Offers:** Allow users to create trade offers for cards.
-    *   [ ] **Trade Notifications:** Notify users when they receive a trade offer.
-    *   [ ] **Trade History:** Maintain a history of completed trades.
+    *   [x] **Trade Notifications:** Notify users when they receive a trade offer.
+    *   [x] **Trade History:** Maintain a history of completed trades.
     *   [ ] **Multiway Trades in a Pod:** Enable multiway trades within a pod, allowing multiple users to participate in a single trade.
 
 ## LOW PRIORITY
@@ -30,7 +30,7 @@
     *   [ ] **Component Library:** Create reusable UI components (buttons, inputs, cards, etc.).
     *   [ ] **Accessibility (A11y):** Use semantic HTML. Provide alt text for images. Ensure sufficient color contrast. Make the application keyboard-navigable.
     *   [x] **Empty States:** Handle empty states with helpful messages and calls to action.
-    *   [ ] **Card Images:** Optimize card images (consider Cloudinary or Imgix).
+    *   [X] **Card Images:** Optimize card images (consider Cloudinary or Imgix).
     *   [ ] **Drag and Drop:** (Deck Building) Implement drag-and-drop functionality for adding/removing cards.
 *   [ ] **Testing**
     *   [ ] **Accessibility Tests:** Integrate accessibility testing into your CI/CD pipeline.

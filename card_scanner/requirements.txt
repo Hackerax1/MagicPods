@@ -3,3 +3,5 @@ pytesseract
 Pillow
 PyJWT
 python-dotenv
+opencv-python
+numpy
