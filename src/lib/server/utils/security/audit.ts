@@ -40,8 +40,10 @@ export async function checkHardcodedSecrets(): Promise<SecurityVulnerability[]> 
     if (fs.existsSync(authPath)) {
       const content = fs.readFileSync(authPath, 'utf8');
       
-      // Check for hardcoded secrets
-      if (content.includes('const JWT_SECRET') || content.includes('const secret =')) {
+      // Check for hardcoded secrets - looks for patterns that indicate hardcoded values
+      // and filters out environment variable usage
+      if ((content.includes('const JWT_SECRET') || content.includes('const secret =')) && 
+          !(content.includes('process.env.') || content.includes('.env'))) {
         vulnerabilities.push({
           id: 'JWT-SECRET-CHECK',
           severity: 'high',

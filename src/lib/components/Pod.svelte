@@ -239,7 +239,7 @@
     <Card title="Update Win/Loss Record" elevation="raised" padding="default">
       <form on:submit|preventDefault={handleUpdateWinLoss} class="space-y-4">
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <Input
+          <Input 
             id="deckSelect"
             label="Select Deck"
             bind:value={deckId}
@@ -250,16 +250,22 @@
             id="wins"
             label="Wins"
             type="number"
-            bind:value={win.toString()}
-            min="0"
+            value={win.toString()}
+            on:input={(e: Event) => {
+              const target = e.target as HTMLInputElement;
+              win = +target.value || 0;
+            }}
             required={true}
           />
           <Input
             id="losses"
             label="Losses"
             type="number"
-            bind:value={loss}
-            min="0"
+            value={loss.toString()}
+            on:input={(e: Event) => {
+              const target = e.target as HTMLInputElement;
+              loss = +target.value || 0;
+            }}
             required={true}
           />
         </div>
