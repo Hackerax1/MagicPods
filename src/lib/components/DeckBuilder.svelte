@@ -5,6 +5,11 @@
   import DeckStats from './DeckStats.svelte';
   import DeckExport from './DeckExport.svelte';
   import DeckTabs from './DeckTabs.svelte';
+  
+  // Import UI components
+  import Button from '$lib/components/ui/Button.svelte';
+  import Card from '$lib/components/ui/Card.svelte';
+  import Alert from '$lib/components/ui/Alert.svelte';
 
   interface Card {
     id?: string;
@@ -29,6 +34,9 @@
   let error = '';
   let currentTab = 'builder';
   let sortOption = 'type';
+  let showAlert = false;
+  let alertType: 'success' | 'error' = 'success';
+  let alertMessage = '';
 
   const handleCardFound = (card: Card) => {
     const existingCardIndex = deck.findIndex(c => c.name === card.name);
@@ -57,6 +65,9 @@
   const handleSaveDeck = async () => {
     if (deckName.trim() === '') {
       error = 'Please enter a deck name';
+      showAlert = true;
+      alertType = 'error';
+      alertMessage = 'Please enter a deck name';
       return;
     }
     
@@ -69,22 +80,39 @@
       
       savingDeck = false;
       error = '';
-      alert('Deck saved successfully!');
+      showAlert = true;
+      alertType = 'success';
+      alertMessage = 'Deck saved successfully!';
     } catch (err) {
       console.error('Error saving deck:', err);
       error = 'Failed to save deck. Please try again.';
+      showAlert = true;
+      alertType = 'error';
+      alertMessage = 'Failed to save deck. Please try again.';
       savingDeck = false;
     }
+  };
+
+  const closeAlert = () => {
+    showAlert = false;
   };
 </script>
 
 <div class="min-h-screen max-w-[1920px] mx-auto p-4">
-  <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+  <Card elevation="elevated" padding="none">
     <div class="bg-indigo-700 text-white p-4">
       <h1 class="text-2xl font-bold">Deck Builder</h1>
     </div>
     
     <DeckTabs bind:currentTab />
+
+    {#if showAlert}
+      <div class="p-4">
+        <Alert type={alertType} dismissable={true} on:close={closeAlert}>
+          {alertMessage}
+        </Alert>
+      </div>
+    {/if}
     
     {#if currentTab === 'builder'}
       <div class="p-4">
@@ -119,5 +147,5 @@
     {:else if currentTab === 'export'}
       <DeckExport {deck} />
     {/if}
-  </div>
+  </Card>
 </div>

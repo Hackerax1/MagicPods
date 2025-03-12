@@ -4,48 +4,128 @@
   export let size: 'sm' | 'md' | 'lg' = 'md';
   export let rounded: boolean = true;
   export let outline: boolean = false;
-  
-  // Define variant classes
-  const variantClasses = {
-    primary: outline 
-      ? 'bg-transparent text-indigo-600 border border-indigo-600' 
-      : 'bg-indigo-100 text-indigo-800',
-    secondary: outline 
-      ? 'bg-transparent text-blue-600 border border-blue-600' 
-      : 'bg-blue-100 text-blue-800',
-    success: outline 
-      ? 'bg-transparent text-green-600 border border-green-600' 
-      : 'bg-green-100 text-green-800',
-    warning: outline 
-      ? 'bg-transparent text-amber-600 border border-amber-600' 
-      : 'bg-amber-100 text-amber-800',
-    error: outline 
-      ? 'bg-transparent text-red-600 border border-red-600' 
-      : 'bg-red-100 text-red-800',
-    info: outline 
-      ? 'bg-transparent text-sky-600 border border-sky-600' 
-      : 'bg-sky-100 text-sky-800',
-    default: outline 
-      ? 'bg-transparent text-gray-600 border border-gray-600' 
-      : 'bg-gray-100 text-gray-800'
-  };
-  
-  // Define size classes
-  const sizeClasses = {
-    sm: 'text-xs px-2 py-0.5',
-    md: 'text-xs px-2.5 py-0.5',
-    lg: 'text-sm px-3 py-1'
-  };
-  
-  // Construct class string
-  const classes = `
-    inline-flex items-center font-medium
-    ${variantClasses[variant]}
-    ${sizeClasses[size]}
-    ${rounded ? 'rounded-full' : 'rounded'}
-  `;
 </script>
 
-<span class={classes} {...$$restProps}>
+<span 
+  class="badge badge-{variant} badge-{size} {rounded ? 'badge-rounded' : ''} {outline ? 'badge-outline' : ''}"
+  {...$$restProps}
+>
   <slot />
 </span>
+
+<style>
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    font-family: var(--font-primary);
+    font-weight: var(--font-weight-medium);
+    white-space: nowrap;
+  }
+
+  .badge-sm {
+    font-size: var(--text-xs);
+    padding: var(--space-0-5) var(--space-2);
+  }
+
+  .badge-md {
+    font-size: var(--text-xs);
+    padding: var(--space-0-5) var(--space-2-5);
+  }
+
+  .badge-lg {
+    font-size: var(--text-sm);
+    padding: var(--space-1) var(--space-3);
+  }
+
+  .badge-rounded {
+    border-radius: var(--radius-full);
+  }
+
+  .badge:not(.badge-rounded) {
+    border-radius: var(--radius-md);
+  }
+
+  /* Default */
+  .badge-default {
+    background-color: var(--bg-subtle);
+    color: var(--text-secondary);
+  }
+
+  .badge-default.badge-outline {
+    background-color: transparent;
+    border: 1px solid var(--color-gray-600);
+    color: var(--color-gray-600);
+  }
+
+  /* Primary */
+  .badge-primary {
+    background-color: var(--color-primary-100);
+    color: var(--color-primary-800);
+  }
+
+  .badge-primary.badge-outline {
+    background-color: transparent;
+    border: 1px solid var(--primary);
+    color: var(--primary);
+  }
+
+  /* Secondary */
+  .badge-secondary {
+    background-color: var(--color-secondary-100);
+    color: var(--color-secondary-800);
+  }
+
+  .badge-secondary.badge-outline {
+    background-color: transparent;
+    border: 1px solid var(--secondary);
+    color: var(--secondary);
+  }
+
+  /* Success */
+  .badge-success {
+    background-color: var(--success-light);
+    color: var(--success-dark);
+  }
+
+  .badge-success.badge-outline {
+    background-color: transparent;
+    border: 1px solid var(--success);
+    color: var(--success);
+  }
+
+  /* Warning */
+  .badge-warning {
+    background-color: var(--warning-light);
+    color: var(--warning-dark);
+  }
+
+  .badge-warning.badge-outline {
+    background-color: transparent;
+    border: 1px solid var(--warning);
+    color: var(--warning);
+  }
+
+  /* Error */
+  .badge-error {
+    background-color: var(--error-light);
+    color: var(--error-dark);
+  }
+
+  .badge-error.badge-outline {
+    background-color: transparent;
+    border: 1px solid var(--error);
+    color: var(--error);
+  }
+
+  /* Info */
+  .badge-info {
+    background-color: var(--info-light);
+    color: var(--info-dark);
+  }
+
+  .badge-info.badge-outline {
+    background-color: transparent;
+    border: 1px solid var(--info);
+    color: var(--info);
+  }
+</style>

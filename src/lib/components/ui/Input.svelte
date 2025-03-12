@@ -14,18 +14,18 @@
   export let icon: string | undefined = undefined;
 </script>
 
-<div class="w-full">
+<div class="input-wrapper">
   {#if label}
-    <label for={id} class="block text-sm font-medium text-gray-700 mb-1">
+    <label for={id} class="input-label">
       {label}
-      {#if required}<span class="text-red-500">*</span>{/if}
+      {#if required}<span class="input-required">*</span>{/if}
     </label>
   {/if}
   
-  <div class="relative rounded-md shadow-sm">
+  <div class="input-container">
     {#if icon}
-      <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-        <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+      <div class="input-icon">
+        <svg class="input-icon-svg" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={icon} />
         </svg>
       </div>
@@ -39,13 +39,7 @@
       {placeholder}
       {disabled}
       {required}
-      class={`
-        block w-full rounded-md 
-        ${icon ? 'pl-10' : 'pl-3'} pr-3 py-2 
-        border ${error ? 'border-red-300 text-red-900 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-indigo-500 focus:border-indigo-500'} 
-        ${disabled ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : 'bg-white'} 
-        text-sm shadow-sm transition-colors
-      `}
+      class="input {error ? 'input-error' : ''} {icon ? 'input-with-icon' : ''} {disabled ? 'input-disabled' : ''}"
       {autocomplete}
       aria-invalid={error ? 'true' : 'false'}
       aria-describedby={error ? `${id}-error` : helpText ? `${id}-description` : undefined}
@@ -54,8 +48,120 @@
   </div>
   
   {#if error}
-    <p id="{id}-error" class="mt-1 text-sm text-red-600" role="alert">{error}</p>
+    <p id="{id}-error" class="input-error-message" role="alert">{error}</p>
   {:else if helpText}
-    <p id="{id}-description" class="mt-1 text-sm text-gray-500">{helpText}</p>
+    <p id="{id}-description" class="input-help-text">{helpText}</p>
   {/if}
 </div>
+
+<style>
+  .input-wrapper {
+    width: 100%;
+    font-family: var(--font-primary);
+  }
+
+  .input-label {
+    display: block;
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-medium);
+    color: var(--text-primary);
+    margin-bottom: var(--space-1);
+  }
+
+  .input-required {
+    color: var(--error);
+    margin-left: var(--space-0-5);
+  }
+
+  .input-container {
+    position: relative;
+  }
+
+  .input-icon {
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    width: 2.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    color: var(--text-secondary);
+  }
+
+  .input-icon-svg {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+
+  .input {
+    width: 100%;
+    height: 2.5rem;
+    padding: 0 var(--space-3);
+    font-size: var(--text-sm);
+    line-height: 1.5;
+    color: var(--text-primary);
+    background-color: var(--bg-default);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-md);
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  }
+
+  .input-with-icon {
+    padding-left: 2.5rem;
+  }
+
+  .input:focus {
+    outline: none;
+    border-color: var(--border-focus);
+    box-shadow: 0 0 0 2px var(--primary-lightest);
+  }
+
+  .input-disabled {
+    background-color: var(--bg-subtle);
+    color: var(--text-disabled);
+    cursor: not-allowed;
+  }
+
+  .input-error {
+    border-color: var(--error);
+  }
+
+  .input-error:focus {
+    box-shadow: 0 0 0 2px var(--error-light);
+  }
+
+  .input-error-message {
+    font-size: var(--text-sm);
+    color: var(--error);
+    margin-top: var(--space-1);
+  }
+
+  .input-help-text {
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    margin-top: var(--space-1);
+  }
+
+  /* Special input types */
+  input[type="date"],
+  input[type="datetime-local"],
+  input[type="month"],
+  input[type="time"],
+  input[type="week"] {
+    min-height: 2.5rem;
+  }
+
+  input[type="color"] {
+    min-height: 2.5rem;
+    padding: var(--space-1);
+  }
+
+  /* For better accessibility */
+  @media (prefers-reduced-motion: reduce) {
+    .input {
+      transition: none;
+    }
+  }
+</style>
