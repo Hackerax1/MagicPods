@@ -15,15 +15,20 @@ import time
 import base64
 import json
 
+# Initialize Flask first so we can use app.logger
+app = Flask(__name__)
+
 # Load environment variables
 load_dotenv()
-
-app = Flask(__name__)
 
 # Get JWT secret from environment variable
 JWT_SECRET = os.getenv('JWT_SECRET')
 if not JWT_SECRET:
+    app.logger.error("JWT_SECRET environment variable is not set!")
     raise ValueError("JWT_SECRET environment variable must be set")
+else:
+    # Log first few characters of secret for debugging (never log the full secret)
+    app.logger.info(f"JWT_SECRET loaded successfully (starts with: {JWT_SECRET[:3]}...)")
 
 # Dictionary to store active scanning sessions
 active_sessions = {}

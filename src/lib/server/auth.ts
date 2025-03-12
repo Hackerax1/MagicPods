@@ -1,4 +1,12 @@
 import type { RequestEvent } from '@sveltejs/kit';
+
+interface UserJWT {
+  userId: string;
+  username: string;
+  email: string;
+  iat: number;
+  exp: number;
+}
 import { eq, or } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import * as schema from '$lib/server/db/schema';
@@ -24,35 +32,16 @@ function generateJWT(payload: any) {
   return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
 }
 
-export async function validateToken(event: RequestEvent) {
-  const token = event.cookies.get(AUTH_COOKIE_NAME);
-  
-  if (!token) {
-    return null;
-  }
-  
+export function validateToken(token: string): UserJWT | null {
   try {
-    // Verify and decode the JWT
     if (!JWT_SECRET) {
-      throw new Error('JWT_SECRET is not defined');
-    }
-    const decoded = jwt.verify(token, JWT_SECRET) as unknown as { userId: string };
-    
-    // Get the user from the database
-    const [userRecord] = await db
-      .select({
-        id: schema.user.id,
-        username: schema.user.username,
-        email: schema.user.email
-      })
-      .from(schema.user)
-      .where(eq(schema.user.id, decoded.userId));
-
-    if (!userRecord) {
+      console.error('JWT_SECRET is not defined in environment variables');
       return null;
     }
     
-    return userRecord;
+    // Verify the token with the secret
+    const decoded = jwt.verify(token, JWT_SECRET) as UserJWT;
+    return decoded;
   } catch (error) {
     console.error('JWT validation error:', error);
     return null;
@@ -134,8 +123,12 @@ export async function login(identifier: string, password: string, event: Request
       throw new Error('Invalid password');
     }
     
-    // Generate JWT token with user ID
-    const token = generateJWT({ userId: foundUser.id });
+    // Generate JWT token with all required user fields
+    const token = generateJWT({
+      userId: foundUser.id,
+      username: foundUser.username,
+      email: foundUser.email
+    });
     
     // Set the auth cookie
     setAuthCookie(event, token);

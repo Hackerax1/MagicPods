@@ -9,50 +9,56 @@ const testUser = {
 
 test.describe('Authentication Workflow', () => {
   test('should register a new user', async ({ page }) => {
-    await page.goto('/#auth');
+    // Go to home page and scroll to auth section
+    await page.goto('/');
+    await page.locator('#auth').scrollIntoViewIfNeeded();
     
-    // Fill registration form in the first panel
-    await page.locator('div.w-full.md\\:w-1\\/2').first().getByLabel('Email Address').fill(testUser.email);
-    await page.locator('div.w-full.md\\:w-1\\/2').first().getByLabel('Username').fill(testUser.username);
-    await page.locator('div.w-full.md\\:w-1\\/2').first().getByLabel('Password').fill(testUser.password);
-    await page.locator('div.w-full.md\\:w-1\\/2').first().getByLabel('Confirm Password').fill(testUser.password);
-    await page.locator('div.w-full.md\\:w-1\\/2').first().getByLabel(/I agree to the/).check();
+    // Fill registration form
+    await page.locator('#email').fill(testUser.email);
+    await page.locator('#username').fill(testUser.username);
+    await page.locator('#password').fill(testUser.password);
+    await page.locator('#confirmPassword').fill(testUser.password);
+    await page.locator('#terms').check();
     
     // Submit form and wait for response
     await Promise.all([
       page.waitForResponse('/api/auth'),
-      page.locator('div.w-full.md\\:w-1\\/2').first().getByRole('button', { name: 'Create Account' }).click()
+      page.locator('button', { hasText: 'Create Account' }).click()
     ]);
     
-    // After successful registration, we should stay on the same page to log in
-    await expect(page).toHaveURL('/#auth');
+    // After successful registration, we should be redirected to auth page
+    await expect(page).toHaveURL('/auth');
   });
 
   test('should fail login with incorrect credentials', async ({ page }) => {
-    await page.goto('/#auth');
+    // Go to home page and scroll to auth section
+    await page.goto('/');
+    await page.locator('#auth').scrollIntoViewIfNeeded();
     
-    // Try to log in with incorrect password in the second panel
-    await page.locator('div.w-full.md\\:w-1\\/2').nth(1).getByLabel('Username or Email').fill(testUser.username);
-    await page.locator('div.w-full.md\\:w-1\\/2').nth(1).getByLabel('Password').fill('WrongPassword123!');
+    // Try to log in with incorrect password
+    await page.locator('#identifier').fill(testUser.username);
+    await page.locator('#password').fill('WrongPassword123!');
     
-    await page.locator('div.w-full.md\\:w-1\\/2').nth(1).getByRole('button', { name: 'Sign in' }).click();
+    await page.locator('button', { hasText: 'Sign in' }).click();
     
     // Check for error message in the login form
-    await expect(page.locator('div.w-full.md\\:w-1\\/2').nth(1).locator('.bg-red-100')).toBeVisible();
-    await expect(page.locator('div.w-full.md\\:w-1\\/2').nth(1).locator('.bg-red-100')).toContainText(/invalid password|user not found/i);
+    await expect(page.locator('.bg-red-50')).toBeVisible();
+    await expect(page.locator('.bg-red-50')).toContainText(/invalid password|user not found/i);
   });
 
   test('should login with correct credentials', async ({ page }) => {
-    await page.goto('/#auth');
+    // Go to home page and scroll to auth section
+    await page.goto('/');
+    await page.locator('#auth').scrollIntoViewIfNeeded();
     
-    // Log in with correct credentials in the second panel
-    await page.locator('div.w-full.md\\:w-1\\/2').nth(1).getByLabel('Username or Email').fill(testUser.username);
-    await page.locator('div.w-full.md\\:w-1\\/2').nth(1).getByLabel('Password').fill(testUser.password);
+    // Log in with correct credentials
+    await page.locator('#identifier').fill(testUser.username);
+    await page.locator('#password').fill(testUser.password);
     
     // Submit form and wait for navigation
     await Promise.all([
       page.waitForNavigation(),
-      page.locator('div.w-full.md\\:w-1\\/2').nth(1).getByRole('button', { name: 'Sign in' }).click()
+      page.locator('button', { hasText: 'Sign in' }).click()
     ]);
     
     // After successful login, we should be redirected to the auth page
@@ -67,13 +73,13 @@ test.describe('Authentication Workflow', () => {
 
   test('should access protected routes when authenticated', async ({ page }) => {
     // Login first
-    await page.goto('/#auth');
-    await page.locator('div.w-full.md\\:w-1\\/2').nth(1).getByLabel('Username or Email').fill(testUser.username);
-    await page.locator('div.w-full.md\\:w-1\\/2').nth(1).getByLabel('Password').fill(testUser.password);
+    await page.goto('/');
+    await page.locator('#identifier').fill(testUser.username);
+    await page.locator('#password').fill(testUser.password);
     
     await Promise.all([
       page.waitForNavigation(),
-      page.locator('div.w-full.md\\:w-1\\/2').nth(1).getByRole('button', { name: 'Sign in' }).click()
+      page.locator('button', { hasText: 'Sign in' }).click()
     ]);
     
     // Try accessing protected routes

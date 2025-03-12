@@ -7,11 +7,12 @@
 
 	let { children } = $props();
 	let isMenuOpen = $state(false);
-	let currentUser = $state<User>(null);
+	import { writable } from 'svelte/store';
+	let currentUser = writable<User>(null);
 	
 	// Subscribe to the user store
 	user.subscribe(value => {
-		currentUser = value;
+		currentUser.set(value);
 	});
 
 	// Toggle mobile menu
@@ -19,7 +20,18 @@
 		isMenuOpen = !isMenuOpen;
 	}
 
-	onMount(() => {
+	onMount(async () => {
+		// Check auth status on mount
+		try {
+			const response = await fetch('/api/auth');
+			const data = await response.json();
+			if (data.user) {
+				user.set(data.user);
+			}
+		} catch (error) {
+			console.error('Error checking auth status:', error);
+		}
+
 		// Close menu when clicking outside
 		document.addEventListener('click', (event) => {
 			const navMenu = document.getElementById('nav-menu');
@@ -41,7 +53,7 @@
 				body: JSON.stringify({ action: 'logout' })
 			});
 			
-			// Redirect to home page
+			user.set(null);
 			window.location.href = '/';
 		} catch (error) {
 			console.error('Logout failed:', error);
@@ -121,16 +133,9 @@
 
 	<footer class="bg-indigo-800 text-white py-6">
 		<div class="container mx-auto px-4">
-			<div class="flex flex-col md:flex-row justify-between items-center">
-				<div class="mb-4 md:mb-0">
-					<p class="text-center md:text-left">&copy; 2025 MTGSvelte - Manage your Magic: The Gathering collection</p>
-				</div>
-				<div class="flex space-x-4">
-					<a href="https://github.com/" class="hover:text-indigo-200 transition">GitHub</a>
-					<a href="/about" class="hover:text-indigo-200 transition">About</a>
-					<a href="/privacy" class="hover:text-indigo-200 transition">Privacy</a>
-				</div>
-			</div>
+			<p class="text-center text-sm">
+				© {new Date().getFullYear()} MTGSvelte. All rights reserved.
+			</p>
 		</div>
 	</footer>
 </div>

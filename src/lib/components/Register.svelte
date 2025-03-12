@@ -139,7 +139,7 @@
       
       <!-- Password field -->
       <div>
-        <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
+        <label for="register-password" class="block text-sm font-medium text-gray-700">Password</label>
         <div class="relative mt-1">
           <div class="pointer-events-none absolute inset-y-0 left-0 pl-3 flex items-center">
             <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
@@ -148,7 +148,7 @@
           </div>
           <input 
             type={showPassword ? "text" : "password"} 
-            id="password" 
+            id="register-password" 
             bind:value={password} 
             on:input={handlePasswordInput}
             required 
@@ -199,7 +199,7 @@
       
       <!-- Confirm Password field -->
       <div>
-        <label for="confirmPassword" class="block text-sm font-medium text-gray-700">Confirm Password</label>
+        <label for="register-confirm-password" class="block text-sm font-medium text-gray-700">Confirm Password</label>
         <div class="relative mt-1">
           <div class="pointer-events-none absolute inset-y-0 left-0 pl-3 flex items-center">
             <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
@@ -208,7 +208,7 @@
           </div>
           <input 
             type={showPassword ? "text" : "password"} 
-            id="confirmPassword" 
+            id="register-confirm-password" 
             bind:value={confirmPassword} 
             required 
             class="block w-full rounded-md border border-gray-300 pl-10 pr-3 py-2 text-gray-900 placeholder-gray-500 focus:border-indigo-500 focus:ring-indigo-500 text-sm sm:text-base"

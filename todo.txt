@@ -8,8 +8,6 @@
 
 ## MEDIUM PRIORITY
 
-
-
 ## LOW PRIORITY
 
 *   [ ] **UI/UX Enhancements**

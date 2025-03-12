@@ -1,7 +1,7 @@
 import type { RequestEvent } from '@sveltejs/kit';
 import { successResponse, errorResponse } from '$lib/server/utils/apiResponse';
 import { standardRateLimit } from '$lib/server/utils/security/rateLimit';
-import { register, login, logout, validateToken } from '$lib/server/auth';
+import { register, login, logout, validateToken, AUTH_COOKIE_NAME } from '$lib/server/auth';
 import { sanitizeString } from '$lib/server/utils/security/sanitize';
 import { generateResetToken, sendResetEmail } from '$lib/server/utils/security/email';
 
@@ -54,7 +54,11 @@ export async function POST(event: RequestEvent) {
 export async function GET(event: RequestEvent) {
   try {
     await standardRateLimit(event);
-    const user = await validateToken(event);
+    const token = event.cookies.get(AUTH_COOKIE_NAME);
+    if (!token) {
+      return successResponse({ user: null });
+    }
+    const user = validateToken(token);
     return successResponse({ user });
   } catch (error) {
     return successResponse({ user: null });

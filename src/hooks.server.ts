@@ -1,14 +1,23 @@
 import type { Handle } from '@sveltejs/kit';
-import * as auth from '$lib/server/auth';
+import { validateToken, AUTH_COOKIE_NAME } from '$lib/server/auth';
 
-const handleAuth: Handle = async ({ event, resolve }) => {
-	// Get the user from the JWT token
-	const user = await auth.validateToken(event);
-	
-	// Set user in locals for use in routes
-	event.locals.user = user;
-	
-	return resolve(event);
+export const handle = async ({ event, resolve }) => {
+  try {
+    const token = event.cookies.get(AUTH_COOKIE_NAME);
+    
+    if (token) {
+      const user = validateToken(token);
+      if (user) {
+        event.locals.user = {
+          id: user.userId,
+          username: user.username,
+          email: user.email
+        };
+      }
+    }
+  } catch (error) {
+    console.error('Authentication error:', error);
+  }
+  
+  return resolve(event);
 };
-
-export const handle: Handle = handleAuth;

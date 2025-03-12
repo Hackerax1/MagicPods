@@ -1,6 +1,7 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
   import { setUser } from '$lib/stores/userStore';
+  import { invalidate } from '$app/navigation';
 
   let identifier = '';
   let password = '';
@@ -30,8 +31,10 @@
       } else {
         // Store the user in the client-side store
         setUser(result.user);
+        // Invalidate the current page to force a refresh of the layout
+        await invalidate('app:auth');
         // Navigate to authenticated area
-        goto('/auth');
+        await goto('/auth');
       }
     } catch (err) {
       console.error('Login error:', err);
@@ -89,7 +92,7 @@
         </div>
 
         <div class="space-y-1">
-          <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
+          <label for="login-password" class="block text-sm font-medium text-gray-700">Password</label>
           <div class="relative mt-1">
             <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
               <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
@@ -98,7 +101,7 @@
             </div>
             <input 
               type={showPassword ? "text" : "password"}
-              id="password" 
+              id="login-password" 
               bind:value={password} 
               required 
               class="block w-full rounded-md border border-gray-300 pl-10 pr-12 py-2 text-gray-900 placeholder-gray-500 focus:border-indigo-500 focus:ring-indigo-500 text-sm sm:text-base"
