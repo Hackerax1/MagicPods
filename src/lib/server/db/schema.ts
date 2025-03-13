@@ -5,8 +5,7 @@ export const user = pgTable('user', {
     email: text('email').notNull().unique(),
     username: text('username').notNull().unique(),
     password: text('password').notNull(),
-    emailVerified: boolean('email_verified').notNull().default(false),
-    verificationToken: text('verification_token'),
+    emailVerified: boolean('email_verified').notNull().default(true),
 });
 
 export const session = pgTable('session', {

@@ -33,10 +33,7 @@ function generateJWT(payload: any) {
     if (!JWT_SECRET) {
         throw new Error('JWT_SECRET is not defined');
     }
-    return jwt.sign({
-        ...payload,
-        verified: payload.verified ?? false
-    }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+    return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
 }
 
 export function validateToken(event: RequestEvent): UserJWT | null {
@@ -97,23 +94,18 @@ export async function register(email: string, username: string, password: string
         }
 
         const hashedPassword = await bcrypt.hash(password, 10);
-        const verificationToken = uuidv4();
         const newUser = {
             id: uuidv4(),
             email,
             username,
             password: hashedPassword,
-            emailVerified: false,
-            verificationToken
+            emailVerified: true
         };
 
         await db.insert(user).values(newUser);
 
-        // Send verification email
-        await sendVerificationEmail(email, verificationToken);
-
         // Return user without sensitive data
-        const { password: _, verificationToken: __, ...userWithoutSensitive } = newUser;
+        const { password: _, ...userWithoutSensitive } = newUser;
         return userWithoutSensitive;
     } catch (error) {
         console.error('Registration error:', error);
