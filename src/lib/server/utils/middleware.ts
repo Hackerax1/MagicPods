@@ -1,32 +1,34 @@
 import type { RequestEvent } from '@sveltejs/kit';
-import { validateToken } from '$lib/server/auth';
-import { standardRateLimit } from './security/rateLimit';
+import { validateToken } from '../auth';
 import { errorResponse, ApiErrors } from './apiResponse';
 
-export type MiddlewareContext = {
-  user: {
-    id: string;
-    [key: string]: any;
-  };
-};
+interface ProtectedRouteOptions {
+    allowUnverifiedEmail?: boolean;
+}
 
-export async function withAuth(
-  event: RequestEvent,
-  handler: (event: RequestEvent, context: MiddlewareContext) => Promise<Response>
-): Promise<Response> {
-  try {
-    // Apply rate limiting first
-    await standardRateLimit(event);
+const PUBLIC_ROUTES = [
+    '/api/auth/login',
+    '/api/auth/register',
+    '/api/auth/reset-password'
+];
 
-    // Validate authentication
-    const user = await validateToken(event);
-    if (!user) {
-      return errorResponse(ApiErrors.UNAUTHORIZED, 401);
+export async function handleAuth(event: RequestEvent, options: ProtectedRouteOptions = {}) {
+    const path = event.url.pathname;
+    
+    // Skip auth for public routes
+    if (PUBLIC_ROUTES.includes(path)) {
+        return null;
     }
 
-    // Call the handler with authenticated user context
-    return handler(event, { user });
-  } catch (error) {
-    return errorResponse(error instanceof Error ? error : ApiErrors.SERVER_ERROR, 500);
-  }
+    const user = await validateToken(event);
+    if (!user) {
+        return errorResponse(ApiErrors.UNAUTHORIZED, 401);
+    }
+
+    // For protected routes that require verification
+    if (!options.allowUnverifiedEmail && !user.verified) {
+        return errorResponse('Email not verified', 403);
+    }
+
+    return null;
 }

@@ -1,23 +1,14 @@
 import type { Handle } from '@sveltejs/kit';
-import { validateToken, AUTH_COOKIE_NAME } from '$lib/server/auth';
+import { validateToken } from '$lib/server/auth';
+import { handleAuth } from '$lib/server/utils/middleware';
 
-export const handle = async ({ event, resolve }) => {
-  try {
-    const token = event.cookies.get(AUTH_COOKIE_NAME);
-    
-    if (token) {
-      const user = validateToken(token);
-      if (user) {
-        event.locals.user = {
-          id: user.userId,
-          username: user.username,
-          email: user.email
-        };
-      }
+export const handle: Handle = async ({ event, resolve }) => {
+    // Handle authentication
+    const authResult = await handleAuth(event);
+    if (authResult) {
+        return authResult;
     }
-  } catch (error) {
-    console.error('Authentication error:', error);
-  }
-  
-  return resolve(event);
+
+    const response = await resolve(event);
+    return response;
 };

@@ -4,10 +4,11 @@ import { standardRateLimit } from '$lib/server/utils/security/rateLimit';
 import { sanitizeString } from '$lib/server/utils/security/sanitize';
 import type { RequestEvent } from '@sveltejs/kit';
 
-export async function POST({ request }: RequestEvent) {
+export async function POST(event: RequestEvent) {
   try {
     // Apply rate limiting
-    await standardRateLimit(request);
+    await standardRateLimit(event);
+    const { request } = event;
 
     const { action, email, username, password, identifier } = await request.json();
 
@@ -35,7 +36,7 @@ export async function POST({ request }: RequestEvent) {
       }
 
       const sanitizedIdentifier = sanitizeString(identifier);
-      const result = await login(sanitizedIdentifier, password, { request });
+      const result = await login(sanitizedIdentifier, password, event);
       return successResponse(result);
     }
   } catch (error) {

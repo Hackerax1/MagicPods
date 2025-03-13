@@ -1,7 +1,3 @@
-/**
- * Rate limiting utility to prevent abuse of API endpoints
- */
-
 import { error } from '@sveltejs/kit';
 import type { RequestEvent } from '@sveltejs/kit';
 
@@ -18,60 +14,67 @@ const DEFAULT_MAX_REQUESTS = 100; // 100 requests per window
  * @param options Configuration options for rate limiting
  */
 export function rateLimit(options: {
-  windowMs?: number;
-  maxRequests?: number;
-  message?: string;
-  statusCode?: number;
+    windowMs?: number;
+    maxRequests?: number;
+    message?: string;
+    statusCode?: number;
 } = {}) {
-  const windowMs = options.windowMs || DEFAULT_WINDOW_MS;
-  const maxRequests = options.maxRequests || DEFAULT_MAX_REQUESTS;
-  const message = options.message || 'Too many requests, please try again later.';
-  const statusCode = options.statusCode || 429;
+    const windowMs = options.windowMs || DEFAULT_WINDOW_MS;
+    const maxRequests = options.maxRequests || DEFAULT_MAX_REQUESTS;
+    const message = options.message || 'Too many requests, please try again later.';
+    const statusCode = options.statusCode || 429;
 
-  return async function handleRateLimit(event: RequestEvent) {
-    // Get client IP address
-    const clientIp = event.getClientAddress();
-    const now = Date.now();
-    
-    // Get or initialize request tracking for this IP
-    let requestData = ipRequests.get(clientIp);
-    if (!requestData || now > requestData.resetTime) {
-      requestData = { count: 0, resetTime: now + windowMs };
-      ipRequests.set(clientIp, requestData);
-    }
-    
-    // Increment request count
-    requestData.count++;
-    
-    // Check if rate limit exceeded
-    if (requestData.count > maxRequests) {
-      // Add rate limit headers
-      event.setHeaders({
-        'Retry-After': String(Math.ceil(requestData.resetTime - now) / 1000),
-        'X-RateLimit-Limit': String(maxRequests),
-        'X-RateLimit-Remaining': '0',
-        'X-RateLimit-Reset': String(Math.ceil(requestData.resetTime / 1000))
-      });
-      
-      throw error(statusCode, message);
-    }
-    
-    // Add rate limit headers
-    event.setHeaders({
-      'X-RateLimit-Limit': String(maxRequests),
-      'X-RateLimit-Remaining': String(maxRequests - requestData.count),
-      'X-RateLimit-Reset': String(Math.ceil(requestData.resetTime / 1000))
-    });
-  };
+    return async function handleRateLimit(event: RequestEvent) {
+        // Get client IP address
+        const clientIp = event.getClientAddress();
+        const now = Date.now();
+        
+        // Get or initialize request tracking for this IP
+        let requestData = ipRequests.get(clientIp);
+        if (!requestData || now > requestData.resetTime) {
+            requestData = { count: 0, resetTime: now + windowMs };
+            ipRequests.set(clientIp, requestData);
+        }
+        
+        // Increment request count
+        requestData.count++;
+        
+        // Check if rate limit exceeded
+        if (requestData.count > maxRequests) {
+            const headers = {
+                'Retry-After': String(Math.ceil((requestData.resetTime - now) / 1000)),
+                'X-RateLimit-Limit': String(maxRequests),
+                'X-RateLimit-Remaining': '0',
+                'X-RateLimit-Reset': String(Math.ceil(requestData.resetTime / 1000))
+            };
+            
+            Object.entries(headers).forEach(([key, value]) => {
+                event.setHeaders({ [key]: value });
+            });
+            throw error(statusCode, message);
+        }
+        
+        // Add rate limit headers to response
+        const headers = {
+            'X-RateLimit-Limit': String(maxRequests),
+            'X-RateLimit-Remaining': String(maxRequests - requestData.count),
+            'X-RateLimit-Reset': String(Math.ceil(requestData.resetTime / 1000))
+        };
+
+        // Set headers on the response
+        Object.entries(headers).forEach(([key, value]) => {
+            event.setHeaders({ [key]: value });
+        });
+    };
 }
 
 /**
  * More restrictive rate limiting for sensitive endpoints like authentication
  */
 export const authRateLimit = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  maxRequests: 10, // 10 login attempts per 15 minutes
-  message: 'Too many login attempts, please try again later.'
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    maxRequests: 10, // 10 login attempts per 15 minutes
+    message: 'Too many login attempts, please try again later.'
 });
 
 /**
@@ -84,10 +87,10 @@ export const standardRateLimit = rateLimit();
  * Should be called on a timer in a production environment
  */
 export function cleanupRateLimitData() {
-  const now = Date.now();
-  for (const [ip, data] of ipRequests.entries()) {
-    if (now > data.resetTime) {
-      ipRequests.delete(ip);
+    const now = Date.now();
+    for (const [ip, data] of ipRequests.entries()) {
+        if (now > data.resetTime) {
+            ipRequests.delete(ip);
+        }
     }
-  }
 }

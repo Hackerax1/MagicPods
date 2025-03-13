@@ -77,7 +77,7 @@ async function processCSV(file: Buffer, userId: string): Promise<any[]> {
           const sanitizedName = sanitizeString(row.name);
           const card = await fetchCard(sanitizedName);
           const quantity = Math.max(1, Math.floor(Number(row.quantity) || 1));
-          await addCardToUserCollection(userId, card, quantity);
+          await addCardToUserCollection(userId, card);
           cards.push({ ...card, quantity });
         } catch (error) {
           hasError = true;

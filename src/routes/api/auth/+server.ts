@@ -58,7 +58,7 @@ export async function GET(event: RequestEvent) {
     if (!token) {
       return successResponse({ user: null });
     }
-    const user = validateToken(token);
+    const user = validateToken(event);
     return successResponse({ user });
   } catch (error) {
     return successResponse({ user: null });

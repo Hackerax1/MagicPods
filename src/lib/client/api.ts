@@ -7,7 +7,7 @@ export async function getDecks() {
 }
 
 export async function fetchUserPods(userId: string) {
-	const response = await fetch(`/api/pods?userId=${userId}`);
+	const response = await fetch(`/api/pods/${userId}`);
 	if (!response.ok) {
 		throw new Error('Failed to fetch user pods');
 	}
