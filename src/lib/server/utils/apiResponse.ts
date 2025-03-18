@@ -1,5 +1,7 @@
 import { json } from '@sveltejs/kit';
 import type { HttpError } from '@sveltejs/kit';
+import { addVersionHeaders } from './apiVersion';
+import type { ApiVersion } from './apiVersion';
 
 export type ApiResponse<T = any> = {
   success: boolean;
@@ -12,20 +14,32 @@ export type ApiResponse<T = any> = {
   };
 };
 
-export function successResponse<T>(data: T, meta?: ApiResponse['meta']) {
-  return json({
+export function successResponse<T>(data: T, meta?: ApiResponse['meta'], version?: ApiVersion) {
+  const response = json({
     success: true,
     data,
     meta
   });
+  
+  if (version) {
+    return addVersionHeaders(response, version);
+  }
+  
+  return response;
 }
 
-export function errorResponse(error: string | Error, status: number = 500) {
+export function errorResponse(error: string | Error, status: number = 500, version?: ApiVersion) {
   const message = error instanceof Error ? error.message : error;
-  return json({
+  const response = json({
     success: false,
     error: message
   }, { status });
+  
+  if (version) {
+    return addVersionHeaders(response, version);
+  }
+  
+  return response;
 }
 
 export const ApiErrors = {

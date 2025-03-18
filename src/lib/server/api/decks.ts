@@ -4,9 +4,12 @@ import { v4 as uuidv4 } from 'uuid';
 import { deck } from '$lib/server/db/schema';
 import { eq } from 'drizzle-orm';
 import { validateToken } from '$lib/server/auth';
-import { successResponse, errorResponse, ApiErrors } from '$lib/server/utils/apiResponse';
+import { successResponse } from '$lib/server/utils/apiResponse';
 import { standardRateLimit } from '$lib/server/utils/security/rateLimit';
 import { sanitizeString } from '$lib/server/utils/security/sanitize';
+import { validateApiVersion } from '$lib/server/utils/apiVersion';
+import { compressResponse, decompressRequest } from '$lib/server/utils/compression';
+import { handleApiError, ApiError, ErrorCodes } from '$lib/server/utils/errorHandler';
 
 import type { RequestEvent } from '@sveltejs/kit';
 
@@ -15,22 +18,31 @@ export async function POST(event: RequestEvent) {
         // Apply rate limiting
         await standardRateLimit(event);
 
+        // Validate API version
+        const { error, version } = await validateApiVersion(event);
+        if (error) return error;
+
         // Validate authentication
         const user = await validateToken(event);
         if (!user) {
-            return errorResponse(ApiErrors.UNAUTHORIZED, 401);
+            throw new ApiError('Authentication required', 401, ErrorCodes.UNAUTHORIZED);
         }
 
-        const { action, deckName, deckId, win, loss } = await event.request.json();
+        // Parse request with compression support
+        const body = await decompressRequest(event).catch(() => {
+            throw new ApiError('Invalid request format', 400, ErrorCodes.INVALID_FORMAT);
+        });
+
+        const { action, deckName, deckId, win, loss } = body as any;
 
         // Input validation
         if (!action || (action !== 'createDeck' && action !== 'updateDeck')) {
-            return errorResponse(ApiErrors.INVALID_INPUT, 400);
+            throw new ApiError('Invalid action', 400, ErrorCodes.INVALID_INPUT);
         }
 
         if (action === 'createDeck') {
             if (!deckName) {
-                return errorResponse('Deck name is required', 400);
+                throw new ApiError('Deck name is required', 400, ErrorCodes.MISSING_REQUIRED_FIELD);
             }
 
             const sanitizedName = sanitizeString(deckName);
@@ -44,15 +56,16 @@ export async function POST(event: RequestEvent) {
 
             const result = await db.transaction(async (tx) => {
                 const [newDeckRecord] = await tx.insert(deck).values(newDeck).returning();
-                return deck;
+                return newDeckRecord;
             });
 
-            return successResponse({ deck: result });
+            const response = successResponse({ deck: result }, undefined, version);
+            return compressResponse(response, event);
         }
 
         if (action === 'updateDeck') {
             if (!deckId) {
-                return errorResponse('Deck ID is required', 400);
+                throw new ApiError('Deck ID is required', 400, ErrorCodes.MISSING_REQUIRED_FIELD);
             }
 
             // Verify deck ownership
@@ -62,11 +75,11 @@ export async function POST(event: RequestEvent) {
                 .where(eq(deck.id, deckId));
 
             if (!existingDeck) {
-                return errorResponse(ApiErrors.NOT_FOUND, 404);
+                throw new ApiError('Deck not found', 404, ErrorCodes.NOT_FOUND);
             }
 
             if (existingDeck.userId !== user.id) {
-                return errorResponse(ApiErrors.FORBIDDEN, 403);
+                throw new ApiError('Access forbidden', 403, ErrorCodes.FORBIDDEN);
             }
 
             const updates: Record<string, any> = {};
@@ -78,10 +91,13 @@ export async function POST(event: RequestEvent) {
                 .set(updates)
                 .where(eq(deck.id, deckId));
 
-            return successResponse({ success: true });
+            const response = successResponse({ success: true }, undefined, version);
+            return compressResponse(response, event);
         }
+        
+        throw new ApiError('Invalid action', 400, ErrorCodes.INVALID_INPUT);
     } catch (error) {
-        return errorResponse(error instanceof Error ? error : ApiErrors.SERVER_ERROR, 500);
+        return handleApiError(error, event);
     }
 }
 
@@ -90,15 +106,19 @@ export async function GET(event: RequestEvent) {
         // Apply rate limiting
         await standardRateLimit(event);
 
+        // Validate API version
+        const { error, version } = await validateApiVersion(event);
+        if (error) return error;
+
         // Validate authentication
         const user = await validateToken(event);
         if (!user) {
-            return errorResponse(ApiErrors.UNAUTHORIZED, 401);
+            throw new ApiError('Authentication required', 401, ErrorCodes.UNAUTHORIZED);
         }
 
         const deckId = event.url.searchParams.get('deckId');
         if (!deckId) {
-            return errorResponse('Deck ID is required', 400);
+            throw new ApiError('Deck ID is required', 400, ErrorCodes.MISSING_REQUIRED_FIELD);
         }
 
         const [deckDetails] = await db
@@ -107,16 +127,17 @@ export async function GET(event: RequestEvent) {
             .where(eq(deck.id, deckId));
 
         if (!deckDetails) {
-            return errorResponse(ApiErrors.NOT_FOUND, 404);
+            throw new ApiError('Deck not found', 404, ErrorCodes.NOT_FOUND);
         }
 
         // Verify deck ownership or access rights
         if (deckDetails.userId !== user.id) {
-            return errorResponse(ApiErrors.FORBIDDEN, 403);
+            throw new ApiError('Access forbidden', 403, ErrorCodes.FORBIDDEN);
         }
 
-        return successResponse({ deck: deckDetails });
+        const response = successResponse({ deck: deckDetails }, undefined, version);
+        return compressResponse(response, event);
     } catch (error) {
-        return errorResponse(error instanceof Error ? error : ApiErrors.SERVER_ERROR, 500);
+        return handleApiError(error, event);
     }
 }

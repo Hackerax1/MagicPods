@@ -1,11 +1,13 @@
-import { json } from '@sveltejs/kit';
 import type { RequestEvent } from '@sveltejs/kit';
 import { db } from '../db';
 import { trade, tradeParticipant, tradeItem, userCard, tradeNotification } from '../db/schema';
 import { validateToken } from '../auth';
-import { successResponse, errorResponse, ApiErrors } from '../utils/apiResponse';
+import { successResponse } from '../utils/apiResponse';
 import { sanitizeString } from '../utils/security/sanitize';
 import { standardRateLimit } from '../utils/security/rateLimit';
+import { validateApiVersion } from '../utils/apiVersion';
+import { compressResponse, decompressRequest } from '../utils/compression';
+import { handleApiError, ApiError, ErrorCodes } from '../utils/errorHandler';
 import { v4 as uuidv4 } from 'uuid';
 import { eq, and, desc, inArray } from 'drizzle-orm';
 
@@ -44,18 +46,32 @@ async function createTradeNotification(tradeId: string, userId: string, message:
 
 export async function POST(event: RequestEvent) {
   try {
+    // Apply rate limiting
     await standardRateLimit(event);
+    
+    // Validate API version
+    const { error, version } = await validateApiVersion(event);
+    if (error) return error;
+    
+    // Authenticate user
     const user = await validateToken(event);
-    if (!user) return errorResponse(ApiErrors.UNAUTHORIZED, 401);
+    if (!user) {
+      throw new ApiError('Authentication required', 401, ErrorCodes.UNAUTHORIZED);
+    }
 
+    // Parse request with compression support
+    const body = await decompressRequest(event).catch(() => {
+      throw new ApiError('Invalid request format', 400, ErrorCodes.INVALID_FORMAT);
+    });
+    
     const path = event.url.pathname;
     const tradeId = path.split('/')[2];
 
     if (path.endsWith('/create')) {
-      const body = await event.request.json() as CreateTradeBody;
+      const createBody = body as CreateTradeBody;
       
-      if (!body.podId || !body.participants?.length || !body.items?.length) {
-        return errorResponse('Missing required fields', 400);
+      if (!createBody.podId || !createBody.participants?.length || !createBody.items?.length) {
+        throw new ApiError('Missing required fields', 400, ErrorCodes.MISSING_REQUIRED_FIELD);
       }
 
       // Create the trade and add all related data in a transaction
@@ -63,14 +79,14 @@ export async function POST(event: RequestEvent) {
         // Create trade
         const [newTrade] = await tx.insert(trade).values({
           id: uuidv4(),
-          podId: body.podId,
+          podId: createBody.podId,
           status: 'pending',
           createdAt: new Date(),
           updatedAt: new Date()
         }).returning();
 
         // Add participants
-        const uniqueParticipants = [...new Set([user.id, ...body.participants])];
+        const uniqueParticipants = [...new Set([user.id, ...createBody.participants])];
         await Promise.all(uniqueParticipants.map(async (userId) => {
           await tx.insert(tradeParticipant).values({
             id: uuidv4(),
@@ -90,14 +106,14 @@ export async function POST(event: RequestEvent) {
         }));
 
         // Verify and add items
-        for (const item of body.items) {
+        for (const item of createBody.items) {
           const [userCardDetails] = await tx
             .select()
             .from(userCard)
             .where(eq(userCard.id, item.userCardId));
           
           if (!userCardDetails || userCardDetails.userId !== user.id) {
-            throw new Error('Card not found or not owned by user');
+            throw new ApiError('Card not found or not owned by user', 400, ErrorCodes.INVALID_INPUT);
           }
 
           await tx.insert(tradeItem).values({
@@ -111,7 +127,8 @@ export async function POST(event: RequestEvent) {
         return { trade: newTrade };
       });
 
-      return successResponse(result);
+      const response = successResponse(result, undefined, version);
+      return compressResponse(response, event);
     }
 
     if (tradeId) {
@@ -120,7 +137,9 @@ export async function POST(event: RequestEvent) {
         .from(trade)
         .where(eq(trade.id, tradeId));
 
-      if (!existingTrade) return errorResponse(ApiErrors.NOT_FOUND, 404);
+      if (!existingTrade) {
+        throw new ApiError('Trade not found', 404, ErrorCodes.NOT_FOUND);
+      }
 
       // Check if user is a participant
       const [participant] = await db
@@ -131,14 +150,16 @@ export async function POST(event: RequestEvent) {
           eq(tradeParticipant.userId, user.id)
         ));
 
-      if (!participant) return errorResponse(ApiErrors.FORBIDDEN, 403);
+      if (!participant) {
+        throw new ApiError('Access forbidden', 403, ErrorCodes.FORBIDDEN);
+      }
 
       if (path.includes('/status')) {
-        const body = await event.request.json() as UpdateTradeStatusBody;
-        const newStatus = sanitizeString(body.status);
+        const statusBody = body as UpdateTradeStatusBody;
+        const newStatus = sanitizeString(statusBody.status);
         
         if (!['pending', 'accepted', 'rejected', 'completed', 'cancelled'].includes(newStatus)) {
-          return errorResponse('Invalid trade status', 400);
+          throw new ApiError('Invalid trade status', 400, ErrorCodes.INVALID_INPUT);
         }
 
         // Get all participants and update trade status in a transaction
@@ -173,14 +194,15 @@ export async function POST(event: RequestEvent) {
           return { trade: updatedTrade, participants };
         });
 
-        return successResponse(result);
+        const response = successResponse(result, undefined, version);
+        return compressResponse(response, event);
       }
 
-      // Existing endpoints for participants and items...
+      // Handle participants endpoint
       if (path.includes('/participants')) {
-        const body = await event.request.json() as AddParticipantBody;
-        if (!body.userId) {
-          return errorResponse('User ID is required', 400);
+        const participantBody = body as AddParticipantBody;
+        if (!participantBody.userId) {
+          throw new ApiError('User ID is required', 400, ErrorCodes.MISSING_REQUIRED_FIELD);
         }
 
         const result = await db.transaction(async (tx) => {
@@ -190,23 +212,23 @@ export async function POST(event: RequestEvent) {
             .from(tradeParticipant)
             .where(and(
               eq(tradeParticipant.tradeId, tradeId),
-              eq(tradeParticipant.userId, body.userId)
+              eq(tradeParticipant.userId, participantBody.userId)
             ));
 
           if (existingParticipant) {
-            throw new Error('User is already a participant in this trade');
+            throw new ApiError('User is already a participant in this trade', 400, ErrorCodes.INVALID_INPUT);
           }
 
           const [newParticipant] = await tx.insert(tradeParticipant).values({
             id: uuidv4(),
             tradeId,
-            userId: body.userId
+            userId: participantBody.userId
           }).returning();
 
           await tx.insert(tradeNotification).values({
             id: uuidv4(),
             tradeId,
-            userId: body.userId,
+            userId: participantBody.userId,
             message: `You have been added to a trade by ${user.username}`,
             createdAt: new Date()
           });
@@ -214,13 +236,14 @@ export async function POST(event: RequestEvent) {
           return { participant: newParticipant };
         });
 
-        return successResponse(result);
+        const response = successResponse(result, undefined, version);
+        return compressResponse(response, event);
       }
 
       if (path.includes('/items')) {
-        const body = await event.request.json() as AddItemBody;
-        if (!body.userCardId || typeof body.quantity !== 'number' || body.quantity <= 0) {
-          return errorResponse('Invalid item details', 400);
+        const itemBody = body as AddItemBody;
+        if (!itemBody.userCardId || typeof itemBody.quantity !== 'number' || itemBody.quantity <= 0) {
+          throw new ApiError('Invalid item details', 400, ErrorCodes.INVALID_INPUT);
         }
 
         const result = await db.transaction(async (tx) => {
@@ -228,17 +251,17 @@ export async function POST(event: RequestEvent) {
           const [userCardDetails] = await tx
             .select()
             .from(userCard)
-            .where(eq(userCard.id, body.userCardId));
+            .where(eq(userCard.id, itemBody.userCardId));
           
           if (!userCardDetails || userCardDetails.userId !== user.id) {
-            throw new Error('Card not found or not owned by user');
+            throw new ApiError('Card not found or not owned by user', 400, ErrorCodes.INVALID_INPUT);
           }
 
           const [newItem] = await tx.insert(tradeItem).values({
             id: uuidv4(),
             tradeId,
-            userCardId: body.userCardId,
-            quantity: body.quantity
+            userCardId: itemBody.userCardId,
+            quantity: itemBody.quantity
           }).returning();
 
           // Notify other participants
@@ -262,21 +285,31 @@ export async function POST(event: RequestEvent) {
           return { item: newItem };
         });
 
-        return successResponse(result);
+        const response = successResponse(result, undefined, version);
+        return compressResponse(response, event);
       }
     }
 
-    return errorResponse('Invalid endpoint', 404);
+    throw new ApiError('Invalid endpoint', 404, ErrorCodes.NOT_FOUND);
   } catch (error) {
-    return errorResponse(error instanceof Error ? error : ApiErrors.SERVER_ERROR, 500);
+    return handleApiError(error, event);
   }
 }
 
 export async function GET(event: RequestEvent) {
   try {
+    // Apply rate limiting
     await standardRateLimit(event);
+    
+    // Validate API version
+    const { error, version } = await validateApiVersion(event);
+    if (error) return error;
+    
+    // Authenticate user
     const user = await validateToken(event);
-    if (!user) return errorResponse(ApiErrors.UNAUTHORIZED, 401);
+    if (!user) {
+      throw new ApiError('Authentication required', 401, ErrorCodes.UNAUTHORIZED);
+    }
 
     const path = event.url.pathname;
     const tradeId = event.url.searchParams.get('tradeId');
@@ -288,7 +321,8 @@ export async function GET(event: RequestEvent) {
         .where(eq(tradeNotification.userId, user.id))
         .orderBy(desc(tradeNotification.createdAt));
 
-      return successResponse({ notifications });
+      const response = successResponse({ notifications }, undefined, version);
+      return compressResponse(response, event);
     }
 
     if (path.endsWith('/history')) {
@@ -305,18 +339,18 @@ export async function GET(event: RequestEvent) {
         .where(inArray(trade.id, tradeIds))
         .orderBy(desc(trade.updatedAt));
 
-      return successResponse({ trades });
+      const response = successResponse({ trades }, undefined, version);
+      return compressResponse(response, event);
     }
 
     if (tradeId) {
-      // Existing trade details endpoint...
       const [tradeDetails] = await db
         .select()
         .from(trade)
         .where(eq(trade.id, tradeId));
 
       if (!tradeDetails) {
-        return errorResponse(ApiErrors.NOT_FOUND, 404);
+        throw new ApiError('Trade not found', 404, ErrorCodes.NOT_FOUND);
       }
 
       // Check if user is a participant
@@ -329,7 +363,7 @@ export async function GET(event: RequestEvent) {
         ));
 
       if (!participant) {
-        return errorResponse(ApiErrors.FORBIDDEN, 403);
+        throw new ApiError('Access forbidden', 403, ErrorCodes.FORBIDDEN);
       }
 
       // Get all participants and items
@@ -343,15 +377,16 @@ export async function GET(event: RequestEvent) {
         .from(tradeItem)
         .where(eq(tradeItem.tradeId, tradeId));
 
-      return successResponse({ 
+      const response = successResponse({ 
         trade: tradeDetails,
         participants,
         items
-      });
+      }, undefined, version);
+      return compressResponse(response, event);
     }
 
-    return errorResponse('Invalid endpoint', 404);
+    throw new ApiError('Invalid endpoint', 404, ErrorCodes.NOT_FOUND);
   } catch (error) {
-    return errorResponse(error instanceof Error ? error : ApiErrors.SERVER_ERROR, 500);
+    return handleApiError(error, event);
   }
 }

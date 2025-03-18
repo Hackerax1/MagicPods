@@ -8,17 +8,14 @@
     * [ ] Identify core SvelteKit features in use
     * [ ] Research alternative routing solutions
     * [ ] Plan progressive migration strategy
-*   [x] **Implement Card Scanner Microservice:** Refactor the card scanner functionality into a separate, user-facing application.
-    * [x] Define microservice API contract
-    * [x] Implement error handling and retries
-    * [x] Add monitoring and logging
+
 
 ## MEDIUM PRIORITY
 
-*   [ ] **API Improvements**
-    * [ ] Implement API versioning
-    * [ ] Add request/response compression
-    * [ ] Improve error handling consistency
+*   [x] **API Improvements**
+    * [x] Implement API versioning
+    * [x] Add request/response compression
+    * [x] Improve error handling consistency
 *   [ ] **Developer Experience**
     * [ ] Add API documentation using OpenAPI/Swagger
     * [ ] Improve development environment setup
