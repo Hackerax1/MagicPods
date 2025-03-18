@@ -1,6 +1,5 @@
-# Use a multi-stage build to reduce size
 # Build stage
-FROM python:3.9-slim AS builder
+FROM python:3.11-slim AS builder
 
 # Install build dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -16,7 +15,6 @@ WORKDIR /app
 
 # Install dependencies into a virtual environment
 RUN python -m venv /opt/venv
-# Make sure we use the virtualenv
 ENV PATH="/opt/venv/bin:$PATH"
 
 # Copy and install requirements
@@ -24,7 +22,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Final stage
-FROM python:3.9-slim
+FROM python:3.11-slim
 
 # Install runtime dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -38,18 +36,28 @@ WORKDIR /app
 
 # Copy virtual environment from builder stage
 COPY --from=builder /opt/venv /opt/venv
-
-# Make sure we use the virtualenv
 ENV PATH="/opt/venv/bin:$PATH"
 
 # Copy application files
 COPY . .
 
-# Make port 5000 available to the world outside this container
+# Create a non-root user
+RUN useradd -m appuser && \
+    chown -R appuser:appuser /app
+USER appuser
+
+# Expose port
 EXPOSE 5000
 
-# Default environment variables
-ENV JWT_SECRET=""
+# Environment variables
+ENV JWT_SECRET="" \
+    PYTHONUNBUFFERED=1 \
+    WORKERS=2 \
+    TIMEOUT=120
 
-# Run app.py when the container launches
-CMD ["python", "app.py"]
+# Healthcheck
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:5000/health || exit 1
+
+# Run with gunicorn for production
+CMD ["sh", "-c", "gunicorn --bind 0.0.0.0:5000 --workers ${WORKERS} --timeout ${TIMEOUT} --access-logfile - --error-logfile - --capture-output app:app"]

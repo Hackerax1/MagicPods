@@ -13,6 +13,27 @@ services:
     ports:
       - "5000:5000"
     environment:
-      - JWT_SECRET=${JWT_SECRET}  # Will use the same JWT secret as the main application
+      - JWT_SECRET=${JWT_SECRET}
+      - WORKERS=2
+      - TIMEOUT=120
+      - PYTHONUNBUFFERED=1
+      - CORS_ORIGINS=http://localhost:5173,http://localhost:3000
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    volumes:
+      - /dev/video0:/dev/video0  # For webcam access if using live scanning
     depends_on:
       - db

@@ -1,32 +1,29 @@
-<!-- CardScanner.svelte -->
 <script lang="ts">
-    import { scanCard } from '$lib/utils/api';
+    import { scanCard, startLiveScanning, getLiveFrame, stopLiveScanning } from '$lib/utils/api';
     import userStore from '$lib/stores/userStore';
     import type { User } from '$lib/stores/userStore';
-    import { onDestroy, onMount } from 'svelte';
+    import { onDestroy } from 'svelte';
+    import Alert from '$lib/components/ui/Alert.svelte';
 
     let selectedImage: File | null = null;
     let scanning = false;
     let error = '';
     let scannedText = '';
+    let alert: { type: 'success' | 'error'; message: string } | null = null;
     
     // Live scanning properties
     let isLiveMode = false;
     let liveScanning = false;
-    let videoEl: HTMLVideoElement;
-    let displayCanvas: HTMLCanvasElement;
     let scanInterval: ReturnType<typeof setInterval> | undefined;
     let frameImageUrl: string = '';
     let liveScannedText = '';
+    let retryCount = 0;
+    const MAX_FRAME_RETRIES = 3;
     
-    // Base URL for card scanner API
-    const API_BASE_URL = '/api/scanner'; // Adjust based on your API setup
-    
-    // Auth token for API calls
+    // Authentication
     let authToken = '';
-    
-        const unsubscribe = userStore.subscribe((user: User | null) => {
-        if (user && user.token) {
+    const unsubscribe = userStore.subscribe((user: User | null) => {
+        if (user?.token) {
             authToken = user.token;
         }
     });
@@ -35,6 +32,8 @@
         const input = event.target as HTMLInputElement;
         if (input.files && input.files[0]) {
             selectedImage = input.files[0];
+            error = '';
+            alert = null;
         }
     }
 
@@ -45,74 +44,52 @@
         }
 
         error = '';
+        alert = null;
         scanning = true;
+        
         try {
             const result = await scanCard(selectedImage);
             scannedText = result.text;
+            if (result.text) {
+                alert = {
+                    type: 'success',
+                    message: 'Card successfully scanned and added to collection!'
+                };
+            }
         } catch (e) {
-            error = e instanceof Error ? e.message : 'Failed to scan card';
+            const errorMsg = e instanceof Error ? e.message : 'Failed to scan card';
+            error = errorMsg;
+            alert = {
+                type: 'error',
+                message: errorMsg
+            };
         } finally {
             scanning = false;
         }
     }
     
-    // Live scanning functions
-    async function startLiveScanning() {
+    async function startScanning() {
         if (!authToken) {
             error = 'Authentication required for live scanning';
             return;
         }
         
         error = '';
+        alert = null;
         liveScanning = true;
+        retryCount = 0;
         
         try {
-            // Start live scanning session on the server
-            const response = await fetch(`${API_BASE_URL}/scan/live/start`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${authToken}`,
-                    'Content-Type': 'application/json'
-                }
-            });
-            
-            if (!response.ok) {
-                throw new Error('Failed to start live scanning session');
-            }
-            
-            // Start polling for frames
+            await startLiveScanning();
             pollForFrames();
         } catch (e) {
-            error = e instanceof Error ? e.message : 'Failed to start live scanning';
+            const errorMsg = e instanceof Error ? e.message : 'Failed to start live scanning';
+            error = errorMsg;
             liveScanning = false;
         }
     }
     
-    async function stopLiveScanning() {
-        if (scanInterval) {
-            clearInterval(scanInterval);
-            scanInterval = undefined;
-        }
-        
-        if (liveScanning) {
-            try {
-                await fetch(`${API_BASE_URL}/scan/live/stop`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${authToken}`,
-                        'Content-Type': 'application/json'
-                    }
-                });
-            } catch (e) {
-                console.error('Error stopping live scanning:', e);
-            }
-        }
-        
-        liveScanning = false;
-        frameImageUrl = '';
-    }
-    
-    function pollForFrames() {
+    async function pollForFrames() {
         if (scanInterval) {
             clearInterval(scanInterval);
         }
@@ -124,60 +101,86 @@
             }
             
             try {
-                const response = await fetch(`${API_BASE_URL}/scan/live/frame`, {
-                    headers: {
-                        'Authorization': `Bearer ${authToken}`
+                const data = await getLiveFrame();
+                if (!data) {
+                    retryCount++;
+                    if (retryCount >= MAX_FRAME_RETRIES) {
+                        throw new Error('Failed to get camera feed');
                     }
-                });
-                
-                if (!response.ok) {
-                    throw new Error('Failed to get frame');
+                    return;
                 }
                 
-                const data = await response.json();
-                
+                retryCount = 0;
                 if (data.frame) {
                     frameImageUrl = `data:image/jpeg;base64,${data.frame}`;
                 }
                 
                 if (data.result) {
                     liveScannedText = data.result;
+                    alert = {
+                        type: 'success',
+                        message: 'Card detected!'
+                    };
                 }
             } catch (e) {
                 console.error('Error fetching frame:', e);
+                if (retryCount >= MAX_FRAME_RETRIES) {
+                    await handleStopScanning();
+                    error = 'Lost connection to camera';
+                }
             }
-        }, 200); // Poll every 200ms
+        }, 200);
+    }
+    
+    async function handleStopScanning() {
+        if (scanInterval) {
+            clearInterval(scanInterval);
+            scanInterval = undefined;
+        }
+        
+        if (liveScanning) {
+            await stopLiveScanning();
+            liveScanning = false;
+            frameImageUrl = '';
+        }
     }
     
     function toggleScanMode() {
         if (liveScanning) {
-            stopLiveScanning();
+            handleStopScanning();
         }
         
         isLiveMode = !isLiveMode;
         error = '';
+        alert = null;
         scannedText = '';
         liveScannedText = '';
     }
     
-    // Cleanup on component destruction
+    // Cleanup
     onDestroy(() => {
-        if (scanInterval) {
-            clearInterval(scanInterval);
-        }
-        
-        stopLiveScanning();
+        unsubscribe();
+        handleStopScanning();
     });
 </script>
 
 <div class="card-scanner">
-    <h2>Card Scanner</h2>
+    <h2 class="text-2xl font-bold mb-4">Card Scanner</h2>
+    
+    {#if alert}
+        <div class="mb-4">
+            <Alert type={alert.type} dismissable={true} on:close={() => alert = null}>
+                {alert.message}
+            </Alert>
+        </div>
+    {/if}
     
     <div class="scan-mode-toggle">
         <button 
             class={isLiveMode ? "mode-button" : "mode-button active"}
             on:click={() => !liveScanning && toggleScanMode()}
             disabled={liveScanning}
+            aria-pressed={!isLiveMode}
         >
             Image Upload
         </button>
@@ -185,13 +188,14 @@
             class={isLiveMode ? "mode-button active" : "mode-button"}
             on:click={() => !scanning && toggleScanMode()}
             disabled={scanning}
+            aria-pressed={isLiveMode}
         >
             Live Camera
         </button>
     </div>
     
     {#if !isLiveMode}
-        <!-- Image Upload Scanning Mode -->
+        <!-- Image Upload Mode -->
         <div class="scanner-input">
             <input 
                 type="file" 
@@ -199,35 +203,37 @@
                 on:change={handleImageSelect} 
                 class="file-input"
                 disabled={scanning}
+                aria-label="Choose card image"
             />
             
             <button 
                 on:click={handleScan} 
                 disabled={!selectedImage || scanning}
                 class="scan-button"
+                aria-busy={scanning}
             >
                 {scanning ? 'Scanning...' : 'Scan Card'}
             </button>
         </div>
         
         {#if scannedText}
-            <div class="scan-result">
-                <h3>Scanned Text:</h3>
-                <p>{scannedText}</p>
+            <div class="scan-result" role="status">
+                <h3 class="text-lg font-semibold">Scanned Text:</h3>
+                <p class="mt-2">{scannedText}</p>
             </div>
         {/if}
     {:else}
-        <!-- Live Camera Scanning Mode -->
+        <!-- Live Camera Mode -->
         <div class="live-scanner">
             {#if !liveScanning}
                 <button 
-                    on:click={startLiveScanning}
+                    on:click={startScanning}
                     class="scan-button live-button"
                 >
                     Start Live Scanning
                 </button>
             {:else}
-                <div class="live-preview">
+                <div class="live-preview" role="img" aria-label="Live camera feed">
                     {#if frameImageUrl}
                         <img src={frameImageUrl} alt="Live camera feed" />
                     {:else}
@@ -236,16 +242,16 @@
                 </div>
                 
                 <button 
-                    on:click={stopLiveScanning}
+                    on:click={handleStopScanning}
                     class="scan-button stop-button"
                 >
                     Stop Scanning
                 </button>
                 
                 {#if liveScannedText}
-                    <div class="scan-result live-result">
-                        <h3>Detected Card Text:</h3>
-                        <p>{liveScannedText}</p>
+                    <div class="scan-result live-result" role="status">
+                        <h3 class="text-lg font-semibold">Detected Card:</h3>
+                        <p class="mt-2">{liveScannedText}</p>
                     </div>
                 {/if}
             {/if}
@@ -253,116 +259,68 @@
     {/if}
     
     {#if error}
-        <p class="error">{error}</p>
+        <p class="error" role="alert">{error}</p>
     {/if}
 </div>
 
 <style>
     .card-scanner {
-        padding: 1rem;
-        border: 1px solid #ccc;
-        border-radius: 4px;
-        max-width: 600px;
-        margin: 0 auto;
+        @apply p-4 border border-gray-200 rounded-lg max-w-2xl mx-auto bg-white shadow-sm;
     }
 
     .scanner-input {
-        margin: 1rem 0;
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
+        @apply space-y-4 my-4;
     }
 
     .file-input {
-        padding: 0.5rem;
-        border: 1px solid #ccc;
-        border-radius: 4px;
+        @apply w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500;
     }
 
     .scan-button {
-        padding: 0.5rem 1rem;
-        background-color: #4a9eff;
-        color: white;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
+        @apply w-full px-4 py-2 text-white bg-indigo-600 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed;
     }
     
     .live-button {
-        background-color: #2a6e9e;
+        @apply bg-green-600 hover:bg-green-700 focus:ring-green-500;
     }
     
     .stop-button {
-        background-color: #e74c3c;
+        @apply bg-red-600 hover:bg-red-700 focus:ring-red-500;
     }
 
-    .scan-button:disabled {
-        background-color: #ccc;
-        cursor: not-allowed;
-    }
-
-    .error {
-        color: red;
-        margin: 1rem 0;
-    }
-
-    .scan-result {
-        margin-top: 1rem;
-        padding: 1rem;
-        background-color: #f5f5f5;
-        border-radius: 4px;
-    }
-    
-    .live-result {
-        background-color: #e6f7ff;
-    }
-    
     .scan-mode-toggle {
-        display: flex;
-        margin-bottom: 1rem;
-        border-radius: 4px;
-        overflow: hidden;
+        @apply flex rounded-md overflow-hidden mb-4;
     }
     
     .mode-button {
-        flex: 1;
-        padding: 0.5rem;
-        border: 1px solid #ccc;
-        background-color: #f0f0f0;
-        cursor: pointer;
+        @apply flex-1 px-4 py-2 text-sm font-medium border border-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed;
     }
     
     .mode-button.active {
-        background-color: #4a9eff;
-        color: white;
-        border-color: #4a9eff;
+        @apply bg-indigo-600 text-white border-indigo-600;
     }
-    
-    .mode-button:disabled {
-        cursor: not-allowed;
-        opacity: 0.7;
-    }
-    
+
     .live-preview {
-        width: 100%;
-        max-height: 300px;
-        border: 1px solid #ccc;
-        border-radius: 4px;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        margin-bottom: 1rem;
-        overflow: hidden;
+        @apply w-full max-h-[400px] border border-gray-200 rounded-lg overflow-hidden mb-4 flex items-center justify-center bg-gray-50;
     }
     
     .live-preview img {
-        width: 100%;
-        height: auto;
-        object-fit: contain;
+        @apply w-full h-full object-contain;
     }
     
     .loading-preview {
-        padding: 2rem;
-        color: #666;
+        @apply p-8 text-gray-500;
+    }
+
+    .error {
+        @apply mt-4 text-red-600 text-sm;
+    }
+
+    .scan-result {
+        @apply mt-4 p-4 bg-gray-50 rounded-lg;
+    }
+    
+    .live-result {
+        @apply bg-green-50;
     }
 </style>

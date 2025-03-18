@@ -1,6 +1,7 @@
 # Card Scanning Microservice using Tesseract OCR
 
 from flask import Flask, request, jsonify, Response
+from flask_cors import CORS
 import pytesseract
 from PIL import Image
 import io
@@ -14,23 +15,50 @@ import threading
 import time
 import base64
 import json
+import structlog
+from prometheus_flask_exporter import PrometheusMetrics
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 
-# Initialize Flask first so we can use app.logger
+# Initialize Flask
 app = Flask(__name__)
+
+# Setup CORS
+CORS_ORIGINS = os.getenv('CORS_ORIGINS', 'http://localhost:5173,http://localhost:3000').split(',')
+CORS(app, resources={
+    r"/*": {
+        "origins": CORS_ORIGINS,
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["Authorization", "Content-Type"],
+        "expose_headers": ["X-RateLimit-Limit", "X-RateLimit-Remaining"]
+    }
+})
+
+# Initialize metrics
+metrics = PrometheusMetrics(app)
+metrics.info('card_scanner_app_info', 'Card Scanner Application Info')
+
+# Initialize rate limiter
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=["200 per day", "50 per hour"],
+    storage_uri="memory://"
+)
+
+# Initialize structured logging
+logger = structlog.get_logger()
 
 # Load environment variables
 load_dotenv()
 
-# Get JWT secret from environment variable
+# Get JWT secret
 JWT_SECRET = os.getenv('JWT_SECRET')
 if not JWT_SECRET:
-    app.logger.error("JWT_SECRET environment variable is not set!")
+    logger.error("missing_jwt_secret", error="JWT_SECRET environment variable is not set!")
     raise ValueError("JWT_SECRET environment variable must be set")
-else:
-    # Log first few characters of secret for debugging (never log the full secret)
-    app.logger.info(f"JWT_SECRET loaded successfully (starts with: {JWT_SECRET[:3]}...)")
 
-# Dictionary to store active scanning sessions
+# Active scanning sessions
 active_sessions = {}
 
 def require_auth(f):
@@ -39,20 +67,21 @@ def require_auth(f):
         auth_header = request.headers.get('Authorization')
         
         if not auth_header:
+            logger.warn("missing_auth_header")
             return jsonify({'error': 'Authorization header is missing'}), 401
         
         try:
-            # Extract token from "Bearer <token>"
             token = auth_header.split(' ')[1]
-            # Verify the token
             payload = jwt.decode(token, JWT_SECRET, algorithms=['HS256'])
-            # Add user info to request context
             request.user = payload
         except jwt.ExpiredSignatureError:
+            logger.warn("expired_token", token=token[:10])
             return jsonify({'error': 'Token has expired'}), 401
         except jwt.InvalidTokenError:
+            logger.warn("invalid_token", token=token[:10])
             return jsonify({'error': 'Invalid token'}), 401
-        except Exception:
+        except Exception as e:
+            logger.error("auth_error", error=str(e))
             return jsonify({'error': 'Invalid authorization header'}), 401
             
         return f(*args, **kwargs)
@@ -67,59 +96,74 @@ class LiveScannerSession:
         self.last_activity = time.time()
         self.thread = None
         self.cap = None
+        self.scan_count = 0
         
     def start(self):
-        self.cap = cv2.VideoCapture(0)
-        if not self.cap.isOpened():
-            app.logger.error(f"Failed to open camera for user {self.user_id}")
+        try:
+            self.cap = cv2.VideoCapture(0)
+            if not self.cap.isOpened():
+                logger.error("camera_error", user_id=self.user_id)
+                return False
+            
+            self.thread = threading.Thread(target=self._scan_loop)
+            self.thread.daemon = True
+            self.thread.start()
+            return True
+        except Exception as e:
+            logger.error("session_start_error", user_id=self.user_id, error=str(e))
             return False
-        
-        self.thread = threading.Thread(target=self._scan_loop)
-        self.thread.daemon = True
-        self.thread.start()
-        return True
         
     def _scan_loop(self):
         while self.active:
-            ret, frame = self.cap.read()
-            if not ret:
-                app.logger.error(f"Failed to capture frame for user {self.user_id}")
+            try:
+                ret, frame = self.cap.read()
+                if not ret:
+                    logger.error("frame_capture_error", user_id=self.user_id)
+                    break
+                    
+                self.last_frame = frame.copy()
+                
+                if time.time() - self.last_activity >= 1.0:
+                    self._process_frame(frame)
+                    self.last_activity = time.time()
+                    
+                time.sleep(0.1)
+            except Exception as e:
+                logger.error("scan_loop_error", user_id=self.user_id, error=str(e))
                 break
-                
-            self.last_frame = frame.copy()
             
-            # Process the frame for OCR every few frames
-            if time.time() - self.last_activity >= 1.0:  # Process every second
-                self._process_frame(frame)
-                self.last_activity = time.time()
-                
-            time.sleep(0.1)  # Short sleep to prevent high CPU usage
-            
-        # Clean up resources
         if self.cap:
             self.cap.release()
             
     def _process_frame(self, frame):
         try:
-            # Convert to PIL Image for tesseract
             img = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
             text = pytesseract.image_to_string(img)
             
             if text and text.strip():
-                self.last_scan_result = text
-                app.logger.info(f"Live scan result for user {self.user_id}: {text[:30]}...")
+                self.last_scan_result = text.strip()
+                self.scan_count += 1
+                logger.info(
+                    "live_scan_success",
+                    user_id=self.user_id,
+                    scan_count=self.scan_count,
+                    text_preview=text[:30]
+                )
         except Exception as e:
-            app.logger.error(f"Error processing frame: {e}")
+            logger.error("frame_processing_error", user_id=self.user_id, error=str(e))
             
     def get_current_frame_base64(self):
         if self.last_frame is not None:
-            _, buffer = cv2.imencode('.jpg', self.last_frame)
-            return base64.b64encode(buffer).decode('utf-8')
+            try:
+                _, buffer = cv2.imencode('.jpg', self.last_frame)
+                return base64.b64encode(buffer).decode('utf-8')
+            except Exception as e:
+                logger.error("frame_encoding_error", user_id=self.user_id, error=str(e))
         return None
         
     def get_scan_result(self):
         result = self.last_scan_result
-        self.last_scan_result = None  # Clear after reading
+        self.last_scan_result = None
         return result
         
     def stop(self):
@@ -129,41 +173,57 @@ class LiveScannerSession:
 
 @app.route('/scan', methods=['POST'])
 @require_auth
+@limiter.limit("30 per minute")
+@metrics.counter(
+    'card_scans_total',
+    'Number of card scan attempts',
+    labels={'status': lambda r: r.status_code}
+)
 def scan_card():
     if 'image' not in request.files:
+        logger.warn("missing_image", user_id=request.user.get('id'))
         return jsonify({'error': 'No image provided'}), 400
 
-    image_file = request.files['image']
-    image = Image.open(io.BytesIO(image_file.read()))
-    text = pytesseract.image_to_string(image)
+    try:
+        image_file = request.files['image']
+        image = Image.open(io.BytesIO(image_file.read()))
+        text = pytesseract.image_to_string(image)
 
-    # Log the scan attempt with user information
-    user_id = request.user.get('id')
-    app.logger.info(f"Card scan attempt by user {user_id}")
+        logger.info(
+            "card_scan_success",
+            user_id=request.user.get('id'),
+            text_preview=text[:30]
+        )
 
-    return jsonify({
-        'text': text,
-        'userId': user_id
-    })
+        return jsonify({
+            'text': text,
+            'userId': request.user.get('id')
+        })
+    except Exception as e:
+        logger.error(
+            "card_scan_error",
+            user_id=request.user.get('id'),
+            error=str(e)
+        )
+        return jsonify({'error': 'Failed to process image'}), 500
 
 @app.route('/scan/live/start', methods=['POST'])
 @require_auth
+@limiter.limit("5 per minute")
+@metrics.counter('live_scan_sessions_total', 'Number of live scanning sessions started')
 def start_live_scan():
     user_id = request.user.get('id')
     
-    # Check if session already exists
     if user_id in active_sessions:
-        # Close existing session
         active_sessions[user_id].stop()
     
-    # Create new session
     session = LiveScannerSession(user_id)
     if not session.start():
         return jsonify({'error': 'Failed to start camera'}), 500
         
     active_sessions[user_id] = session
     
-    app.logger.info(f"Live scanning session started for user {user_id}")
+    logger.info("live_session_started", user_id=user_id)
     return jsonify({
         'message': 'Live scanning session started',
         'userId': user_id
@@ -171,6 +231,7 @@ def start_live_scan():
 
 @app.route('/scan/live/frame', methods=['GET'])
 @require_auth
+@limiter.limit("60 per minute")
 def get_live_frame():
     user_id = request.user.get('id')
     
@@ -196,18 +257,30 @@ def stop_live_scan():
     if user_id in active_sessions:
         active_sessions[user_id].stop()
         del active_sessions[user_id]
-        app.logger.info(f"Live scanning session stopped for user {user_id}")
+        logger.info("live_session_stopped", user_id=user_id)
     
     return jsonify({
         'message': 'Live scanning session stopped',
         'userId': user_id
     })
 
-@app.route('/health', methods=['GET'])
-def health_check():
-    return jsonify({'status': 'healthy'}), 200
+@app.route('/metrics')
+def metrics():
+    return Response(metrics.generate_metrics(), mimetype='text/plain')
 
-# Clean up function to be called when the application shuts down
+@app.route('/health')
+def health_check():
+    return jsonify({
+        'status': 'healthy',
+        'timestamp': time.time(),
+        'active_sessions': len(active_sessions)
+    })
+
+@app.errorhandler(429)
+def ratelimit_handler(e):
+    logger.warn("rate_limit_exceeded", user_id=request.user.get('id') if hasattr(request, 'user') else None)
+    return jsonify({'error': 'Rate limit exceeded'}), 429
+
 @app.teardown_appcontext
 def cleanup(exception=None):
     for user_id, session in list(active_sessions.items()):

@@ -98,6 +98,20 @@ export async function getAuthToken() {
     }
 }
 
+const CARD_SCANNER_BASE_URL = 'http://localhost:5000';
+const MAX_RETRIES = 3;
+const RETRY_DELAY = 1000;
+
+async function retryWithBackoff(fn: () => Promise<any>, retries = MAX_RETRIES): Promise<any> {
+    try {
+        return await fn();
+    } catch (error) {
+        if (retries === 0) throw error;
+        await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
+        return retryWithBackoff(fn, retries - 1);
+    }
+}
+
 export async function scanCard(imageFile: File) {
     const token = await getAuthToken();
     if (!token) {
@@ -107,32 +121,87 @@ export async function scanCard(imageFile: File) {
     const formData = new FormData();
     formData.append('image', imageFile);
 
-    const response = await fetch('http://localhost:5000/scan', {
+    return retryWithBackoff(async () => {
+        const response = await fetch(`${CARD_SCANNER_BASE_URL}/scan`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            },
+            body: formData
+        });
+
+        if (!response.ok) {
+            if (response.status === 401) throw new Error('Authentication failed');
+            if (response.status === 429) throw new Error('Rate limit exceeded. Please try again later.');
+            throw new Error('Failed to scan card');
+        }
+
+        const result = await response.json();
+        
+        if (result.text) {
+            try {
+                await addCardToCollection({ name: result.text });
+            } catch (error) {
+                console.warn('Card scanned but failed to add to collection:', error);
+            }
+        }
+
+        return result;
+    });
+}
+
+export async function startLiveScanning() {
+    const token = await getAuthToken();
+    if (!token) throw new Error('Authentication required');
+
+    const response = await fetch(`${CARD_SCANNER_BASE_URL}/scan/live/start`, {
         method: 'POST',
         headers: {
-            'Authorization': `Bearer ${token}`
-        },
-        body: formData
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        }
     });
 
     if (!response.ok) {
-        if (response.status === 401) {
-            throw new Error('Authentication failed');
-        }
-        throw new Error('Failed to scan card');
+        if (response.status === 429) throw new Error('Rate limit exceeded. Please try again later.');
+        throw new Error('Failed to start live scanning');
     }
 
-    const result = await response.json();
-    
-    // If a card was successfully scanned, add it to the collection
-    if (result.text) {
-        try {
-            await addCardToCollection(result.text);
-        } catch (error) {
-            console.warn('Card scanned but failed to add to collection:', error);
+    return response.json();
+}
+
+export async function getLiveFrame() {
+    const token = await getAuthToken();
+    if (!token) throw new Error('Authentication required');
+
+    const response = await fetch(`${CARD_SCANNER_BASE_URL}/scan/live/frame`, {
+        headers: {
+            'Authorization': `Bearer ${token}`
         }
+    });
+
+    if (!response.ok) {
+        if (response.status === 404) return null;
+        throw new Error('Failed to get frame');
     }
 
-    return result;
+    return response.json();
+}
+
+export async function stopLiveScanning() {
+    const token = await getAuthToken();
+    if (!token) return;
+
+    try {
+        await fetch(`${CARD_SCANNER_BASE_URL}/scan/live/stop`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+    } catch (error) {
+        console.error('Error stopping live scanning:', error);
+    }
 }
 
