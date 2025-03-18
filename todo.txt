@@ -2,7 +2,6 @@
 
 *   [ ] **Remove Dependency on drizzle-kit:** Refactor code to eliminate the use of drizzle-kit.
 *   [ ] **Remove Dependency on @sveltejs/kit:** Refactor code to eliminate the use of @sveltejs/kit.
-*   [ ] **Remove Dependency on @sveltejs/adapter-auto:** Refactor code to eliminate the use of @sveltejs/adapter-auto.
 *   [ ] **Implement Card Scanner Microservice:** Refactor the card scanner functionality into a separate, user-facing application.
 
 ## MEDIUM PRIORITY
