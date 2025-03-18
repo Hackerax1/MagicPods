@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount, onDestroy } from 'svelte';
   import CardSearch from './CardSearch.svelte';
   import DeckInfo from './DeckInfo.svelte';
   import DeckList from './DeckList.svelte';
@@ -10,6 +11,10 @@
   import Button from '$lib/components/ui/Button.svelte';
   import Card from '$lib/components/ui/Card.svelte';
   import Alert from '$lib/components/ui/Alert.svelte';
+  import KeyboardShortcuts from '$lib/components/ui/KeyboardShortcuts.svelte';
+
+  // Import keyboard utilities
+  import { keyboardManager } from '$lib/utils/keyboard';
 
   interface Card {
     id?: string;
@@ -37,6 +42,7 @@
   let showAlert = false;
   let alertType: 'success' | 'error' = 'success';
   let alertMessage = '';
+  let showKeyboardShortcuts = false;
 
   const handleCardFound = (card: Card) => {
     const existingCardIndex = deck.findIndex(c => c.name === card.name);
@@ -120,12 +126,102 @@
       handleRemoveCard(card);
     }
   }
+
+  function toggleKeyboardShortcutsHelp() {
+    showKeyboardShortcuts = !showKeyboardShortcuts;
+  }
+
+  function switchTab(tabName: string) {
+    currentTab = tabName;
+  }
+
+  onMount(() => {
+    // Register application-wide shortcuts
+    keyboardManager.register({
+      key: '?',
+      description: 'Show keyboard shortcuts help',
+      handler: () => toggleKeyboardShortcutsHelp()
+    });
+    
+    keyboardManager.register({
+      key: 's',
+      ctrl: true,
+      description: 'Save deck',
+      handler: (e) => {
+        e.preventDefault();
+        handleSaveDeck();
+      }
+    });
+    
+    keyboardManager.register({
+      key: 'b',
+      ctrl: true,
+      description: 'Switch to builder tab',
+      handler: () => switchTab('builder')
+    });
+    
+    keyboardManager.register({
+      key: 't',
+      ctrl: true,
+      description: 'Switch to stats tab',
+      handler: () => switchTab('stats')
+    });
+    
+    keyboardManager.register({
+      key: 'e',
+      ctrl: true,
+      description: 'Switch to export tab',
+      handler: () => switchTab('export')
+    });
+
+    keyboardManager.register({
+      key: 'f',
+      ctrl: true,
+      description: 'Focus card search',
+      handler: () => {
+        const searchInput = document.querySelector('[data-search-input]') as HTMLElement;
+        searchInput?.focus();
+      }
+    });
+
+    keyboardManager.register({
+      key: 'Escape',
+      description: 'Close any open dialog or reset focus',
+      handler: () => {
+        if (showKeyboardShortcuts) {
+          showKeyboardShortcuts = false;
+        } else if (showAlert) {
+          showAlert = false;
+        }
+        // Could add more handlers here for other modals or dialogs
+      }
+    });
+  });
+
+  onDestroy(() => {
+    // Clean up shortcuts when component is destroyed
+    keyboardManager.unregister('?');
+    keyboardManager.unregister('s', { ctrl: true });
+    keyboardManager.unregister('b', { ctrl: true });
+    keyboardManager.unregister('t', { ctrl: true });
+    keyboardManager.unregister('e', { ctrl: true });
+    keyboardManager.unregister('f', { ctrl: true });
+    keyboardManager.unregister('Escape');
+  });
 </script>
 
 <div class="min-h-screen max-w-[1920px] mx-auto p-4">
   <Card elevation="elevated" padding="none">
-    <div class="bg-indigo-700 text-white p-4">
+    <div class="bg-indigo-700 text-white p-4 flex justify-between items-center">
       <h1 class="text-2xl font-bold">Deck Builder</h1>
+      <Button 
+        variant="secondary" 
+        on:click={toggleKeyboardShortcutsHelp}
+        aria-label="Show keyboard shortcuts"
+      >
+        <span class="hidden sm:inline mr-2">Shortcuts</span>
+        <span class="inline-block text-sm border rounded px-1">?</span>
+      </Button>
     </div>
     
     <DeckTabs bind:currentTab />
@@ -172,10 +268,11 @@
                 handleCardKeyDown(event.detail.event, event.detail.card);
               }}
             />
-            <div class="sr-only">
+            <div class="sr-only" aria-live="polite">
               <p>Use arrow keys to navigate between cards</p>
               <p>Use plus and minus keys to adjust card quantities</p>
               <p>Press Enter or Space to view card details</p>
+              <p>Press question mark to view all keyboard shortcuts</p>
             </div>
           </div>
         </div>
@@ -198,3 +295,8 @@
     </div>
   {/if}
 </div>
+
+<KeyboardShortcuts 
+  showHelp={showKeyboardShortcuts} 
+  on:close={() => showKeyboardShortcuts = false} 
+/>
