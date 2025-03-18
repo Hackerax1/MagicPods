@@ -207,10 +207,19 @@ describe('Security Audit Module', () => {
       // Reset mocks
       vi.resetAllMocks();
       
-      // Restore common mock defaults after reset
+      // Mock file system operations
       vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.readdirSync).mockReturnValue([
+        {
+          name: 'auth/+server.ts',
+          toString: () => 'auth/+server.ts',
+          isFile: () => true,
+          isDirectory: () => false
+        } as unknown as fs.Dirent
+      ]);
+      vi.mocked(path.join).mockImplementation((...args) => args.join('/'));
     });
-    
+
     describe('checkHardcodedSecrets', () => {
       it('should detect hardcoded JWT secrets', async () => {
         // Mock file with hardcoded secret
@@ -235,34 +244,28 @@ describe('Security Audit Module', () => {
         expect(vulnerabilities).toHaveLength(0);
       });
     });
-    
+
     describe('checkXssVulnerabilities', () => {
       it('should detect unsanitized user input', async () => {
-        // Mock file structure with proper files
-        vi.mocked(fs.readdirSync).mockReturnValue([{ name: 'users.ts', isFile: () => true, isDirectory: () => false } as unknown as fs.Dirent]);
-        
         // Mock file with unsanitized input
         vi.mocked(fs.readFileSync).mockReturnValue(`
-          function handleUserInput(req, res) {
-            const name = req.body.name;
+          export async function POST({ request }) {
+            const { name } = await request.json();
             return { name };
           }
         `);
         
         const vulnerabilities = await auditModule.checkXssVulnerabilities();
         expect(vulnerabilities.length).toBeGreaterThan(0);
+        expect(vulnerabilities[0].id).toContain('XSS-RISK');
       });
       
       it('should not report when sanitization is used', async () => {
-        // Mock file structure
-        vi.mocked(fs.readdirSync).mockReturnValue([{ name: 'users.ts', isFile: () => true, isDirectory: () => false } as unknown as fs.Dirent]);
-        
-        // Mock file with sanitized input
         vi.mocked(fs.readFileSync).mockReturnValue(`
           import { sanitizeString } from '../utils/sanitize';
-          function handleUserInput(req, res) {
-            const name = sanitizeString(req.body.name);
-            return { name };
+          export async function POST({ request }) {
+            const { name } = await request.body;
+            return { name: sanitizeString(name) };
           }
         `);
         
@@ -270,16 +273,13 @@ describe('Security Audit Module', () => {
         expect(vulnerabilities).toHaveLength(0);
       });
     });
-    
+
     describe('checkRateLimiting', () => {
       it('should detect missing rate limiting', async () => {
-        // Mock file structure
-        vi.mocked(fs.readdirSync).mockReturnValue([{ name: '+server.ts', isFile: () => true, isDirectory: () => false } as unknown as fs.Dirent]);
-        
-        // Mock file with no rate limiting but with endpoints
+        // Mock file without rate limiting
         vi.mocked(fs.readFileSync).mockReturnValue(`
           export async function POST({ request }) {
-            // Handle login
+            // Handle request
           }
         `);
         
@@ -288,22 +288,18 @@ describe('Security Audit Module', () => {
       });
       
       it('should not report when rate limiting is used', async () => {
-        // Mock file structure
-        vi.mocked(fs.readdirSync).mockReturnValue([{ name: '+server.ts', isFile: () => true, isDirectory: () => false } as unknown as fs.Dirent]);
-        
-        // Mock file with rate limiting
         vi.mocked(fs.readFileSync).mockReturnValue(`
           import { rateLimit } from '$lib/utils';
-          export async function POST({ request }) {
-            // Handle login with rate limiting
-          }
+          export const POST = rateLimit(async ({ request }) => {
+            // Handle request with rate limiting
+          });
         `);
         
         const vulnerabilities = await auditModule.checkRateLimiting();
         expect(vulnerabilities).toHaveLength(0);
       });
     });
-    
+
     describe('checkNpmVulnerabilities', () => {
       it('should handle npm audit results', async () => {
         // Mock npm audit output

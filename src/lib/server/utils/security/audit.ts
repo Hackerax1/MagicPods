@@ -67,33 +67,35 @@ export async function checkHardcodedSecrets(): Promise<SecurityVulnerability[]> 
 export async function checkXssVulnerabilities(): Promise<SecurityVulnerability[]> {
   const vulnerabilities: SecurityVulnerability[] = [];
   
-  // Check if sanitization is used in API endpoints
   try {
-    const apiDir = path.join(process.cwd(), 'src', 'lib', 'server', 'api');
+    const apiDir = path.join(process.cwd(), 'src', 'routes', 'api');
     const sanitizeImportPattern = "import { sanitizeString }";
     const sanitizeFunctionPattern = "sanitizeString(";
     
-    // Find all js/ts files in the API directory
     if (fs.existsSync(apiDir)) {
       const apiFiles = fs.readdirSync(apiDir, { recursive: true })
-        .filter((file: any) => file.toString().endsWith('.ts'));
+        .filter((file: any) => file.toString().endsWith('+server.ts'));
       
       for (const file of apiFiles) {
         const filePath = path.join(apiDir, file.toString());
         const content = fs.readFileSync(filePath, 'utf8');
         
         // If the file handles user input but doesn't use sanitization
-        if (content.includes('body.') || content.includes('params.') || content.includes('query.')) {
-          if (!content.includes(sanitizeImportPattern) && !content.includes(sanitizeFunctionPattern)) {
-            vulnerabilities.push({
-              id: `XSS-RISK-${file}`,
-              severity: 'medium',
-              description: 'User inputs should be sanitized to prevent XSS attacks',
-              affectedComponent: `API endpoint: ${file}`,
-              recommendation: 'Use sanitizeString() from the security utils on all user inputs',
-              status: 'open'
-            });
-          }
+        if ((content.includes('request.json()') || 
+             content.includes('request.body') || 
+             content.includes('params.') || 
+             content.includes('request.query') ||
+             content.includes('params[')) &&
+            !content.includes(sanitizeImportPattern) && 
+            !content.includes(sanitizeFunctionPattern)) {
+          vulnerabilities.push({
+            id: `XSS-RISK-${file}`,
+            severity: 'medium',
+            description: 'User inputs should be sanitized to prevent XSS attacks',
+            affectedComponent: `API endpoint: ${file}`,
+            recommendation: 'Use sanitizeString() from the security utils on all user inputs',
+            status: 'open'
+          });
         }
       }
     }
@@ -110,7 +112,6 @@ export async function checkXssVulnerabilities(): Promise<SecurityVulnerability[]
 export async function checkRateLimiting(): Promise<SecurityVulnerability[]> {
   const vulnerabilities: SecurityVulnerability[] = [];
   
-  // Check if rate limiting middleware is applied to API endpoints
   try {
     const routesDir = path.join(process.cwd(), 'src', 'routes', 'api');
     const rateLimitPattern = "rateLimit";
@@ -123,20 +124,22 @@ export async function checkRateLimiting(): Promise<SecurityVulnerability[]> {
         const filePath = path.join(routesDir, file.toString());
         const content = fs.readFileSync(filePath, 'utf8');
         
-        // If the file doesn't use rate limiting
-        if (content.includes('POST') || 
-            content.includes('PUT') || 
-            content.includes('DELETE')) {
-          if (!content.includes(rateLimitPattern)) {
-            vulnerabilities.push({
-              id: `RATE-LIMIT-MISSING-${file}`,
-              severity: 'medium',
-              description: 'API endpoints need rate limiting to prevent abuse',
-              affectedComponent: `API endpoint: ${file}`,
-              recommendation: 'Apply rateLimit middleware to sensitive endpoints',
-              status: 'open'
-            });
-          }
+        // If the file has mutating endpoints but doesn't use rate limiting
+        if ((content.includes('export async function POST') || 
+             content.includes('export async function PUT') || 
+             content.includes('export async function DELETE') ||
+             content.includes('export const POST') ||
+             content.includes('export const PUT') ||
+             content.includes('export const DELETE')) &&
+            !content.includes(rateLimitPattern)) {
+          vulnerabilities.push({
+            id: `RATE-LIMIT-MISSING-${file}`,
+            severity: 'medium',
+            description: 'API endpoints need rate limiting to prevent abuse',
+            affectedComponent: `API endpoint: ${file}`,
+            recommendation: 'Apply rateLimit middleware to sensitive endpoints',
+            status: 'open'
+          });
         }
       }
     }

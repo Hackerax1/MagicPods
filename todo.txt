@@ -1,6 +1,5 @@
 ## HIGH PRIORITY
 
-*   [ ] **Investigate and Fix Failing Security Tests:** The security tests are consistently failing; investigate the cause and implement fixes.
 *   [ ] **Remove Dependency on drizzle-kit:** Refactor code to eliminate the use of drizzle-kit.
 *   [ ] **Remove Dependency on @sveltejs/kit:** Refactor code to eliminate the use of @sveltejs/kit.
 *   [ ] **Remove Dependency on @sveltejs/adapter-auto:** Refactor code to eliminate the use of @sveltejs/adapter-auto.
