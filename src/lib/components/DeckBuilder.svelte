@@ -96,6 +96,30 @@
   const closeAlert = () => {
     showAlert = false;
   };
+
+  function handleCardKeyDown(event: KeyboardEvent, card: Card) {
+    if (event.key === ' ' || event.key === 'Enter') {
+      event.preventDefault();
+      // Toggle card details or perform primary action
+    } else if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+      event.preventDefault();
+      const cards = deck.flatMap(c => c);
+      const currentIndex = cards.indexOf(card);
+      const newIndex = event.key === 'ArrowUp' 
+        ? (currentIndex - 1 + cards.length) % cards.length
+        : (currentIndex + 1) % cards.length;
+      
+      // Focus the new card
+      const cardElements = document.querySelectorAll('[data-card-id]');
+      (cardElements[newIndex] as HTMLElement)?.focus();
+    } else if (event.key === '+') {
+      event.preventDefault();
+      handleAddCard(card);
+    } else if (event.key === '-') {
+      event.preventDefault();
+      handleRemoveCard(card);
+    }
+  }
 </script>
 
 <div class="min-h-screen max-w-[1920px] mx-auto p-4">
@@ -120,7 +144,9 @@
           <!-- Left Column -->
           <div class="xl:col-span-1">
             <div class="sticky top-4 space-y-6">
-              <CardSearch onCardFound={handleCardFound} />
+              <CardSearch 
+                onCardFound={handleCardFound}
+              />
               <DeckInfo
                 bind:deckName
                 bind:deckDescription
@@ -132,13 +158,25 @@
           </div>
           
           <!-- Right Column -->
-          <div class="xl:col-span-2 2xl:col-span-3">
+          <div 
+            class="xl:col-span-2 2xl:col-span-3"
+            role="region"
+            aria-label="Deck contents"
+          >
             <DeckList
               {deck}
               bind:sortOption
               onRemoveCard={handleRemoveCard}
               onAddCard={handleAddCard}
+              on:keydown={(event) => {
+                handleCardKeyDown(event.detail.event, event.detail.card);
+              }}
             />
+            <div class="sr-only">
+              <p>Use arrow keys to navigate between cards</p>
+              <p>Use plus and minus keys to adjust card quantities</p>
+              <p>Press Enter or Space to view card details</p>
+            </div>
           </div>
         </div>
       </div>
@@ -148,4 +186,15 @@
       <DeckExport {deck} />
     {/if}
   </Card>
+</div>
+
+<div 
+  class="fixed inset-x-0 bottom-4 flex justify-center"
+  aria-live="polite"
+>
+  {#if error}
+    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg shadow-lg">
+      {error}
+    </div>
+  {/if}
 </div>

@@ -8,11 +8,6 @@
 
 ## LOW PRIORITY
 
-*   [ ] **UI/UX Enhancements**
-    *   [ ] **Design System/Style Guide:** Define a color palette, typography, and spacing scale. Document UI patterns for consistency.
-    *   [ ] **Component Library:** Create reusable UI components (buttons, inputs, cards, etc.).
-    *   [ ] **Accessibility (A11y):** Use semantic HTML. Provide alt text for images. Ensure sufficient color contrast. Make the application keyboard-navigable.
-    *   [ ] **Drag and Drop:** (Deck Building) Implement drag-and-drop functionality for adding/removing cards.
 *   [ ] **Testing**
     *   [ ] **Accessibility Tests:** Integrate accessibility testing into your CI/CD pipeline.
 *   [ ] **Performance Optimization**
