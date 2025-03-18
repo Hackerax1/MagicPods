@@ -1,4 +1,9 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
+  import { createEventDispatcher } from 'svelte';
+  
+  const dispatch = createEventDispatcher();
+
   interface Card {
     id?: string;
     name: string;
@@ -20,6 +25,12 @@
   export let onAddCard: (card: Card) => void;
 
   export let sortOption = 'type'; // 'type', 'cmc', 'name'
+  
+  // Touch interaction state
+  let touchStartX = 0;
+  let touchStartY = 0;
+  let touchThreshold = 50; // Minimum swipe distance
+  let activeCardId: string | null = null;
   
   function getMainType(type_line: string): string {
     if (type_line.includes('Land')) return 'Land';
@@ -107,13 +118,70 @@
   }
 
   function handleKeyDown(event: KeyboardEvent, card: Card) {
-    console.log('Key pressed:', event.key, 'on card:', card.name);
+    dispatch('keydown', { event, card });
   }
 
   function handleDragEnd() {
     dragSource = null;
     dragTarget = null;
   }
+  
+  // Touch event handlers for mobile
+  function handleTouchStart(event: TouchEvent, card: Card) {
+    if (event.touches.length === 1) {
+      const touch = event.touches[0];
+      touchStartX = touch.clientX;
+      touchStartY = touch.clientY;
+      if (card.id) {
+        activeCardId = card.id;
+      }
+    }
+  }
+  
+  function handleTouchMove(event: TouchEvent) {
+    // Prevent scrolling while swiping
+    if (activeCardId) {
+      event.preventDefault();
+    }
+  }
+  
+  function handleTouchEnd(event: TouchEvent, card: Card) {
+    if (activeCardId !== (card.id || null)) return;
+    
+    if (event.changedTouches.length === 1) {
+      const touch = event.changedTouches[0];
+      const deltaX = touch.clientX - touchStartX;
+      const deltaY = touch.clientY - touchStartY;
+      
+      // If horizontal swipe is greater than vertical and exceeds threshold
+      if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > touchThreshold) {
+        if (deltaX > 0) {
+          // Swipe right - add card
+          onAddCard(card);
+        } else {
+          // Swipe left - remove card
+          onRemoveCard(card);
+        }
+      }
+    }
+    
+    activeCardId = null;
+  }
+  
+  onMount(() => {
+    // Add passive touch event listeners
+    const cardElements = document.querySelectorAll('[data-card-id]');
+    cardElements.forEach(element => {
+      element.addEventListener('touchmove', handleTouchMove, { passive: false });
+    });
+    
+    return () => {
+      // Clean up listeners
+      cardElements.forEach(element => {
+        element.removeEventListener('touchmove', handleTouchMove);
+      });
+    };
+  });
 </script>
 
 <div class="bg-gray-50 p-4 rounded-md w-full">
@@ -146,60 +214,37 @@
           <div class="space-y-2">
             {#each cards as card}
               <div 
-                class="flex items-center bg-white p-2 rounded-lg shadow-sm hover:shadow-md transition-shadow"
+                class="flex items-center bg-white p-2 rounded-lg shadow-sm hover:shadow-md transition-shadow relative {activeCardId === card.id ? 'active-card' : ''}"
                 draggable="true"
                 on:dragstart={(e) => handleDragStart(e, card)}
                 on:dragover={(e) => handleDragOver(e, card)}
                 on:drop={(e) => handleDrop(e, card)}
                 on:dragend={handleDragEnd}
                 on:keydown={(e) => handleKeyDown(e, card)}
+                on:touchstart={(e) => handleTouchStart(e, card)}
+                on:touchend={(e) => handleTouchEnd(e, card)}
                 role="listitem"
                 tabindex="0"
                 data-card-id={card.id}
                 aria-label="{card.name}, {card.type_line}, Quantity: {card.quantity || 1}"
               >
-                <div class="flex-shrink-0 mr-3 w-16">
+                <div class="flex-shrink-0 mr-3 w-16 h-16 relative">
                   {#if card.image_uris}
-                    <picture>
-                      <!-- Tiny placeholder while loading -->
-                      <img 
-                        src={card.image_uris.small} 
-                        alt=""
-                        class="w-full h-12 object-cover rounded shadow-sm transition-opacity duration-300"
-                        style="opacity: 0.1"
-                        aria-hidden="true"
-                        width="146"
-                        height="204"
-                      />
-                      <!-- Main image with responsive sources -->
-                      <source
-                        media="(min-width: 1024px)"
-                        srcset={card.image_uris.normal}
-                        type="image/jpg"
-                      >
-                      <source
-                        media="(min-width: 640px)"
-                        srcset={card.image_uris.small}
-                        type="image/jpg"
-                      >
-                      <img 
-                        src={card.image_uris.art_crop}
-                        alt=""
-                        class="w-full h-12 object-cover rounded shadow-sm absolute inset-0 transition-opacity duration-300"
-                        loading="lazy"
-                        decoding="async"
-                        fetchpriority="low"
-                        onload="this.style.opacity = 1"
-                        aria-hidden="true"
-                        width="146"
-                        height="204"
-                      />
-                    </picture>
+                    <img 
+                      src={card.image_uris.art_crop}
+                      alt=""
+                      class="w-full h-full object-cover rounded shadow-sm"
+                      loading="lazy"
+                      decoding="async"
+                      fetchpriority="low"
+                      aria-hidden="true"
+                    />
                   {/if}
                 </div>
                 <div class="flex-1 min-w-0 pr-2">
                   <p class="text-sm font-medium text-gray-900 truncate">{card.name}</p>
                   <p class="text-xs text-gray-500 truncate">{card.type_line}</p>
+                  <p class="text-xs text-indigo-600 md:hidden">Swipe left to remove, right to add</p>
                 </div>
                 <div 
                   class="flex items-center gap-1 ml-auto"
@@ -208,10 +253,10 @@
                 >
                   <button 
                     on:click={() => onRemoveCard(card)}
-                    class="p-1 rounded-full text-gray-400 hover:text-red-500 focus:outline-none focus:ring-2 focus:ring-red-500"
+                    class="p-1 rounded-full text-gray-400 hover:text-red-500 focus:outline-none focus:ring-2 focus:ring-red-500 touch-action-manipulation"
                     aria-label="Remove one {card.name}"
                   >
-                    <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <svg class="h-6 w-6 md:h-5 md:w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                       <path fill-rule="evenodd" d="M5 10a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1z" clip-rule="evenodd" />
                     </svg>
                   </button>
@@ -223,10 +268,10 @@
                   </span>
                   <button 
                     on:click={() => onAddCard(card)}
-                    class="p-1 rounded-full text-gray-400 hover:text-green-500 focus:outline-none focus:ring-2 focus:ring-green-500"
+                    class="p-1 rounded-full text-gray-400 hover:text-green-500 focus:outline-none focus:ring-2 focus:ring-green-500 touch-action-manipulation"
                     aria-label="Add one more {card.name}"
                   >
-                    <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <svg class="h-6 w-6 md:h-5 md:w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                       <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
                     </svg>
                   </button>
@@ -238,6 +283,15 @@
       {/each}
     </div>
   {/if}
+  
+  <div class="mt-8 p-4 bg-indigo-50 rounded-md border border-indigo-200 md:hidden">
+    <h3 class="text-sm font-medium text-indigo-700 mb-2">Mobile Controls</h3>
+    <ul class="text-xs text-indigo-600 space-y-1">
+      <li>• Swipe left on a card to remove one</li>
+      <li>• Swipe right on a card to add one</li>
+      <li>• Tap the + and - buttons to adjust quantity</li>
+    </ul>
+  </div>
 </div>
 
 <style>
@@ -253,25 +307,28 @@
     outline: 2px solid var(--primary);
     outline-offset: 2px;
   }
-
-  picture {
-    position: relative;
-    display: block;
-    width: 100%;
-    height: 100%;
+  
+  .active-card {
+    background-color: #f9fafb;
   }
-
-  picture img {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
+  
+  .touch-action-manipulation {
+    touch-action: manipulation;
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .transition-opacity {
+    .transition-shadow {
       transition: none;
+    }
+  }
+  
+  @media (max-width: 640px) {
+    button {
+      min-height: 44px;
+      min-width: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
   }
 </style>

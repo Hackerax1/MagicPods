@@ -4,6 +4,10 @@
 	import { page } from '$app/stores';
 	import { user } from '$lib/stores/userStore';
 	import type { User } from '$lib/stores/userStore';
+	import { initializeAppShortcuts } from '$lib/utils/keyboard';
+	import { initOfflineSupport } from '$lib/utils/offline';
+	import OfflineIndicator from '$lib/components/ui/OfflineIndicator.svelte';
+	import ToastContainer from '$lib/components/ui/ToastContainer.svelte';
 
 	let isMenuOpen = false;
 	let currentUser: User = null;
@@ -19,6 +23,12 @@
 	}
 
 	onMount(async () => {
+		// Initialize keyboard shortcuts
+		initializeAppShortcuts();
+		
+		// Initialize offline support
+		initOfflineSupport();
+		
 		// Check auth status on mount
 		try {
 			const response = await fetch('/api/auth');
@@ -39,6 +49,15 @@
 				!navMenu.contains(event.target as Node) && 
 				!navToggle?.contains(event.target as Node)) {
 				isMenuOpen = false;
+			}
+		});
+		
+		// Listen for notifications from the offline system
+		window.addEventListener('app:notification', (event: Event) => {
+			const customEvent = event as CustomEvent;
+			if (customEvent.detail) {
+				// If you have a toast system, you could use it here
+				console.log(`Notification: ${customEvent.detail.message}`);
 			}
 		});
 	});
@@ -76,11 +95,27 @@
 						<a href="/auth/decks" class="hover:text-indigo-200 transition">Decks</a>
 						<a href="/auth/collection" class="hover:text-indigo-200 transition">Collection</a>
 						<a href="/auth/pods" class="hover:text-indigo-200 transition">Pods</a>
-						<button 
-							onclick={handleLogout}
-							class="bg-indigo-800 hover:bg-indigo-900 px-4 py-2 rounded-md transition">
-							Logout
-						</button>
+						<div class="relative group">
+							<button class="flex items-center hover:text-indigo-200 transition">
+								<span class="mr-1">{currentUser.username}</span>
+								<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+								</svg>
+							</button>
+							<div class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg hidden group-hover:block z-10">
+								<div class="py-1">
+									<button 
+										on:click={handleLogout}
+										class="block w-full text-left px-4 py-2 text-gray-800 hover:bg-indigo-100">
+										Logout
+									</button>
+									<hr class="my-1">
+									<div class="block px-4 py-2 text-xs text-gray-500">
+										<p>Press <kbd class="px-1 py-0.5 bg-gray-100 border rounded">?</kbd> for shortcuts</p>
+									</div>
+								</div>
+							</div>
+						</div>
 					{:else}
 						<a href="/" class="hover:text-indigo-200 transition">Home</a>
 					{/if}
@@ -90,7 +125,7 @@
 				<button 
 					id="nav-toggle"
 					class="md:hidden text-white focus:outline-none" 
-					onclick={(e) => { e.stopPropagation(); toggleMenu(); }}
+					on:click={(e) => { e.stopPropagation(); toggleMenu(); }}
 					aria-label="Toggle menu">
 					<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="w-6 h-6">
 						{#if isMenuOpen}
@@ -111,8 +146,11 @@
 							<a href="/auth/decks" class="hover:bg-indigo-800 px-3 py-2 rounded transition">Decks</a>
 							<a href="/auth/collection" class="hover:bg-indigo-800 px-3 py-2 rounded transition">Collection</a>
 							<a href="/auth/pods" class="hover:bg-indigo-800 px-3 py-2 rounded transition">Pods</a>
+							<div class="px-3 py-2 text-xs">
+								<p>Press <kbd class="px-1 py-0.5 bg-indigo-600 border border-indigo-500 rounded">?</kbd> for shortcuts</p>
+							</div>
 							<button 
-								onclick={handleLogout}
+								on:click={handleLogout}
 								class="text-left bg-indigo-800 hover:bg-indigo-900 px-3 py-2 rounded transition">
 								Logout
 							</button>
@@ -131,9 +169,29 @@
 
 	<footer class="bg-indigo-800 text-white py-6">
 		<div class="container mx-auto px-4">
-			<p class="text-center text-sm">
-				© {new Date().getFullYear()} MTGSvelte. All rights reserved.
-			</p>
+			<div class="flex flex-col md:flex-row justify-between items-center">
+				<p class="text-sm mb-4 md:mb-0">
+					© {new Date().getFullYear()} MTGSvelte. All rights reserved.
+				</p>
+				<div class="text-xs flex items-center">
+					<span class="mr-2">Keyboard shortcuts:</span>
+					<kbd class="px-1 py-0.5 bg-indigo-700 border border-indigo-600 rounded mr-1">?</kbd>
+					<span class="opacity-75">Help</span>
+				</div>
+			</div>
 		</div>
 	</footer>
+	
+	<!-- Offline indicator -->
+	<OfflineIndicator />
+	
+	<!-- Toast container for notifications -->
+	<ToastContainer />
 </div>
+
+<style>
+	kbd {
+		font-family: 'Courier New', monospace;
+		font-size: 0.75rem;
+	}
+</style>

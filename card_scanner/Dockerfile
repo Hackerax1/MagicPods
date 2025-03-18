@@ -1,17 +1,25 @@
-FROM python:3.11-slim
+FROM python:3.10-slim
 
-# Install system dependencies including Tesseract OCR
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
     tesseract-ocr \
-    libgl1-mesa-glx \
-    libglib2.0-0 \
+    libtesseract-dev \
+    tesseract-ocr-eng \
+    ffmpeg \
+    libsm6 \
+    libxext6 \
     && rm -rf /var/lib/apt/lists/*
+
+# Set Tesseract data directory
+ENV TESSDATA_PREFIX=/usr/share/tesseract-ocr/4.00/tessdata
 
 # Set working directory
 WORKDIR /app
 
-# Install Python dependencies
+# Copy requirements first for better layer caching
 COPY requirements.txt .
+
+# Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
@@ -19,7 +27,16 @@ COPY . .
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
-ENV TESSDATA_PREFIX=/usr/share/tesseract-ocr/4.00/tessdata
+ENV FLASK_APP=app.py
+ENV LOG_LEVEL=INFO
+ENV APP_VERSION=1.0.0
 
-# Run with gunicorn
+# Expose the application port
+EXPOSE 5000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD curl -f http://localhost:5000/health || exit 1
+
+# Run the application with Gunicorn (production WSGI server)
 CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "4", "--threads", "2", "--timeout", "120", "app:app"]

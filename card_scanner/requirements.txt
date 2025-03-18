@@ -13,3 +13,7 @@ flask-cors==4.0.0
 redis==5.0.1
 # For better logging in production
 python-json-logger==2.0.7
+# New packages for enhanced error handling and monitoring
+backoff==2.2.1
+psutil==5.9.8
+werkzeug==3.0.1

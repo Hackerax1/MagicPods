@@ -58,6 +58,19 @@
       cardData = null;
       cardName = '';
       showCardView = false;
+      
+      // Return focus to the search input after adding card
+      setTimeout(() => {
+        document.getElementById('card-search')?.focus();
+      }, 0);
+    }
+  };
+
+  const handleKeyDown = (event: KeyboardEvent) => {
+    // Handle 'Ctrl+Enter' to add the card directly from search results
+    if (event.key === 'Enter' && event.ctrlKey && showCardView && cardData) {
+      event.preventDefault();
+      handleAddToDeck();
     }
   };
 </script>
@@ -72,16 +85,20 @@
         <input 
           type="text" 
           id="card-search"
+          data-search-input
           bind:value={cardName} 
           on:keypress={handleKeyPress}
-          placeholder="Enter card name" 
+          on:keydown={handleKeyDown}
+          placeholder="Enter card name (Ctrl+F)" 
           class="block w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+          aria-label="Search for a card by name"
         />
       </div>
       <button 
         on:click={handleSearch} 
         class="ml-2 inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
         disabled={loading}
+        aria-label="Search for card"
       >
         {#if loading}
           <svg class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -93,6 +110,9 @@
         {/if}
       </button>
     </div>
+    <p class="mt-1 text-xs text-gray-500">
+      Press <kbd class="px-1 py-0.5 bg-gray-100 border rounded">Enter</kbd> to search, <kbd class="px-1 py-0.5 bg-gray-100 border rounded">Ctrl+Enter</kbd> to add the found card
+    </p>
     {#if error}
       <p class="mt-2 text-sm text-red-600">{error}</p>
     {/if}
@@ -117,6 +137,7 @@
             <button 
               on:click={handleAddToDeck}
               class="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              aria-label="Add {cardData.name} to deck"
             >
               <svg class="h-4 w-4 mr-1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                 <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
@@ -129,3 +150,11 @@
     </div>
   {/if}
 </div>
+
+<style>
+  kbd {
+    font-family: 'Courier New', monospace;
+    font-size: 0.75rem;
+    box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.1);
+  }
+</style>
