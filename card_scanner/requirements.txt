@@ -1,12 +1,15 @@
-Flask==2.3.3
+flask==3.0.0
 pytesseract==0.3.10
-Pillow
-PyJWT==2.8.0
+pillow==10.2.0
+pyjwt==2.8.0
 python-dotenv==1.0.0
-opencv-python==4.8.0.76
+opencv-python-headless==4.9.0.80
 numpy
-prometheus-flask-exporter
-Flask-Limiter
-gunicorn
-structlog
-Flask-CORS
+prometheus-flask-exporter==0.23.0
+flask-limiter==3.5.0
+gunicorn==21.2.0
+structlog==24.1.0
+flask-cors==4.0.0
+redis==5.0.1
+# For better logging in production
+python-json-logger==2.0.7
