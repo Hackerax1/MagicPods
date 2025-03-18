@@ -1,8 +1,19 @@
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
+import { imagetools } from 'vite-imagetools';
 
 export default defineConfig({
-	plugins: [sveltekit()],
+	plugins: [
+		sveltekit(),
+		imagetools({
+			defaultDirectives: new URLSearchParams({
+				format: 'webp',
+				quality: '80',
+				progressive: '1',
+				source: '0'
+			})
+		})
+	],
 	build: {
 		rollupOptions: {
 			output: {
@@ -34,5 +45,25 @@ export default defineConfig({
 			'postgres',
 			'drizzle-orm/pg-core'
 		]
+	},
+	// Add image performance options
+	server: {
+		fs: {
+			strict: false, // Needed for imagetools in development
+		},
+	},
+	preview: {
+		headers: {
+			// Add cache headers for images
+			'/*.webp': {
+				'Cache-Control': 'public, max-age=31536000, immutable'
+			},
+			'/*.jpg': {
+				'Cache-Control': 'public, max-age=31536000, immutable'
+			},
+			'/*.png': {
+				'Cache-Control': 'public, max-age=31536000, immutable'
+			}
+		}
 	}
 });

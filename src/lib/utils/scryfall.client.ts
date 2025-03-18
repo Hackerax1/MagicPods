@@ -1,57 +1,50 @@
+import { browser } from '$app/environment';
+import { getItem, addItem, updateItem } from './indexedDB';
+
+// Constants
 const SCRYFALL_SEARCH_URL = 'https://api.scryfall.com/cards/search';
+const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
 
-// LRU Cache implementation
-class LRUCache<K, V> {
-    private cache = new Map<K, V>();
-    private readonly maxSize: number;
+// In-memory cache for fastest access during session
+const memoryCache = new Map<string, { data: any; timestamp: number }>();
 
-    constructor(maxSize: number) {
-        this.maxSize = maxSize;
-    }
-
-    get(key: K): V | undefined {
-        const item = this.cache.get(key);
-        if (item) {
-            this.cache.delete(key);
-            this.cache.set(key, item);
-        }
-        return item;
-    }
-
-    set(key: K, value: V): void {
-        if (this.cache.size >= this.maxSize) {
-            const firstKey = this.cache.keys().next().value;
-            this.cache.delete(firstKey);
-        }
-        this.cache.set(key, value);
-    }
-
-    clear(): void {
-        this.cache.clear();
-    }
-}
-
-// Initialize LRU cache with max 1000 items
-const cardCache = new LRUCache<string, { data: any; timestamp: number }>(1000);
-const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours cache time
-
+/**
+ * Fetch a card from Scryfall with tiered caching:
+ * 1. Check memory cache first (fastest)
+ * 2. Check IndexedDB if not in memory (persistence)
+ * 3. Fetch from API if not cached or expired
+ */
 export async function fetchCard(cardName: string) {
-    // Normalize card name to use as cache key
     const cacheKey = `card_${cardName.toLowerCase().trim()}`;
     
-    // Check memory cache first
-    const cached = cardCache.get(cacheKey);
-    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-        return cached.data;
+    // Step 1: Check memory cache first (fastest)
+    const cachedInMemory = memoryCache.get(cacheKey);
+    if (cachedInMemory && Date.now() - cachedInMemory.timestamp < CACHE_TTL) {
+        return cachedInMemory.data;
     }
     
-    // Make API call if no cache hit
+    // Step 2: Check IndexedDB if browser environment
+    if (browser) {
+        try {
+            const cachedInDB = await getItem<{data: any; timestamp: number}>('cards', cacheKey);
+            
+            if (cachedInDB && Date.now() - cachedInDB.timestamp < CACHE_TTL) {
+                // Add back to memory cache for faster subsequent access
+                memoryCache.set(cacheKey, cachedInDB);
+                return cachedInDB.data;
+            }
+        } catch (err) {
+            console.warn('IndexedDB read failed, falling back to API:', err);
+        }
+    }
+    
+    // Step 3: Make API call if no cache hit or cache expired
     const response = await fetch(`${SCRYFALL_SEARCH_URL}?q=${encodeURIComponent(cardName)}`, {
         headers: { 'Accept-Encoding': 'gzip' }
     });
     
     if (!response.ok) {
-        throw new Error('Failed to fetch card data from Scryfall');
+        throw new Error(`Failed to fetch card data from Scryfall: ${response.status}`);
     }
     
     const data = await response.json();
@@ -60,13 +53,40 @@ export async function fetchCard(cardName: string) {
     }
     
     const cardData = data.data[0];
+    const cacheEntry = { data: cardData, timestamp: Date.now() };
     
     // Save in memory cache
-    cardCache.set(cacheKey, { data: cardData, timestamp: Date.now() });
+    memoryCache.set(cacheKey, cacheEntry);
+    
+    // Save in IndexedDB if available
+    if (browser) {
+        try {
+            await updateItem('cards', {
+                id: cacheKey,
+                ...cacheEntry
+            });
+        } catch (err) {
+            console.warn('Failed to cache card in IndexedDB:', err);
+        }
+    }
     
     return cardData;
 }
 
-export function clearCardCache() {
-    cardCache.clear();
+/**
+ * Clear card cache
+ * @param type - Type of cache to clear: 'memory', 'persistent', or 'all'
+ */
+export function clearCardCache(type: 'memory' | 'persistent' | 'all' = 'all') {
+    if (type === 'memory' || type === 'all') {
+        memoryCache.clear();
+    }
+    
+    if ((type === 'persistent' || type === 'all') && browser) {
+        import('./indexedDB').then(idb => {
+            idb.clearStore('cards').catch(err => {
+                console.error('Failed to clear IndexedDB card cache:', err);
+            });
+        });
+    }
 }

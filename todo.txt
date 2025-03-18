@@ -12,10 +12,6 @@
 
 ## MEDIUM PRIORITY
 
-*   [x] **API Improvements**
-    * [x] Implement API versioning
-    * [x] Add request/response compression
-    * [x] Improve error handling consistency
 *   [ ] **Developer Experience**
     * [ ] Add API documentation using OpenAPI/Swagger
     * [ ] Improve development environment setup
@@ -29,8 +25,22 @@
     * [ ] **Load Testing:** Implement performance benchmarks.
 *   [ ] **Performance Optimization**
     * [ ] **Code Splitting:** Split your code into smaller chunks for faster initial load times.
+        * [x] Basic route-based code splitting with vite.config.js
+        * [ ] Dynamic imports for heavy components (CardScanner, DeckBuilder)
+        * [ ] Implement lazy loading for offscreen components
+        * [ ] Setup module preloading for critical paths
     * [ ] **Caching:** Implement caching strategies for frequently accessed data.
+        * [x] Implement memory caching for Scryfall API data
+        * [x] Set up service worker caching for offline support
+        * [ ] Add IndexedDB storage for large dataset persistence
+        * [ ] Implement advanced HTTP caching with ETag support
+        * [ ] Set up stale-while-revalidate pattern for all API requests
     * [ ] **Image Optimization:** Add responsive images and lazy loading
+        * [ ] Implement image srcset for card images at multiple resolutions
+        * [ ] Add native lazy loading attribute to non-critical images
+        * [ ] Create blurred placeholders for card images during loading
+        * [ ] Set up an image optimization pipeline with vite-imagetools
+        * [ ] Implement progressive image loading for card art
 
 
 ## CONSISTENT UPKEEP

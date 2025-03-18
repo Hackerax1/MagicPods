@@ -103,7 +103,7 @@ export async function GET(event: RequestEvent) {
   }
 }
 
-export async function _forgotPassword(event: RequestEvent, version: string) {
+export async function _forgotPassword(event: RequestEvent, version: ApiVersion | undefined) {
   try {
     const requestBody = await decompressRequest(event);
     const { email } = requestBody as any;

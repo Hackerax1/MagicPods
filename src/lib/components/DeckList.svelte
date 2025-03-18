@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { createEventDispatcher } from 'svelte';
+  import CardImage from '$lib/components/ui/CardImage.svelte';
   
   const dispatch = createEventDispatcher();
 
@@ -230,14 +231,11 @@
               >
                 <div class="flex-shrink-0 mr-3 w-16 h-16 relative">
                   {#if card.image_uris}
-                    <img 
-                      src={card.image_uris.art_crop}
-                      alt=""
-                      class="w-full h-full object-cover rounded shadow-sm"
+                    <CardImage 
+                      cardId={card.id}
+                      imageUrl={card.image_uris.art_crop}
+                      altText={card.name}
                       loading="lazy"
-                      decoding="async"
-                      fetchpriority="low"
-                      aria-hidden="true"
                     />
                   {/if}
                 </div>
