@@ -5,14 +5,12 @@
 	import { user } from '$lib/stores/userStore';
 	import type { User } from '$lib/stores/userStore';
 
-	let { children } = $props();
-	let isMenuOpen = $state(false);
-	import { writable } from 'svelte/store';
-	let currentUser = writable<User>(null);
+	let isMenuOpen = false;
+	let currentUser: User = null;
 	
 	// Subscribe to the user store
-	user.subscribe(value => {
-		currentUser.set(value);
+	user.subscribe((value: User | null) => {
+		currentUser = value;
 	});
 
 	// Toggle mobile menu
@@ -128,7 +126,7 @@
 	</header>
 
 	<main class="flex-grow container mx-auto px-4 py-8">
-		{@render children()}
+		<slot />
 	</main>
 
 	<footer class="bg-indigo-800 text-white py-6">
