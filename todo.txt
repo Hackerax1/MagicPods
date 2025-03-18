@@ -28,8 +28,8 @@
 
 *   [ ] **Testing**
     * [ ] **Accessibility Tests:** Integrate accessibility testing into your CI/CD pipeline.
-    * [ ] **Integration Tests:** Add more integration tests for critical flows
-    * [ ] **Load Testing:** Implement performance benchmarks
+    * [ ] **Integration Tests:** Add more integration tests for critical flows.
+    * [ ] **Load Testing:** Implement performance benchmarks.
 *   [ ] **Performance Optimization**
     * [ ] **Code Splitting:** Split your code into smaller chunks for faster initial load times.
     * [ ] **Caching:** Implement caching strategies for frequently accessed data.

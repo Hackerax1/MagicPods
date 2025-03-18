@@ -135,30 +135,18 @@
   </div>
   
   {#if deck.length === 0}
-    <div class="text-center py-10 bg-white rounded-md border border-gray-200">
-      <svg class="mx-auto h-12 w-12 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-      </svg>
-      <p class="mt-2 text-sm text-gray-500">No cards in your deck yet</p>
-      <p class="text-sm text-gray-500">Search for cards to add them to your deck</p>
+    <div class="text-center py-10 bg-gray-50 rounded-md">
+      <p class="text-gray-500">Add cards to your deck to see them here</p>
     </div>
   {:else}
-    <div class="space-y-6">
+    <div class="grid gap-4">
       {#each Object.entries(sortedDeck()) as [category, cards]}
-        <div>
-          <h3 class="font-medium text-gray-900 mb-2 flex flex-wrap items-center gap-2">
-            <span>{category}</span>
-            <span class="text-sm text-gray-500">({cards.length} {cards.length === 1 ? 'card' : 'cards'})</span>
-          </h3>
-          
-          <div 
-            class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-3"
-            role="list"
-            aria-label={`${category} cards`}
-          >
+        <div class="card-group">
+          <h3 class="text-lg font-medium text-gray-900 mb-2">{category} ({cards.length})</h3>
+          <div class="space-y-2">
             {#each cards as card}
               <div 
-                class="flex items-center bg-white p-2 rounded-md border border-gray-200 hover:border-indigo-300 transition-colors {dragTarget === card ? 'border-indigo-500' : ''}"
+                class="flex items-center bg-white p-2 rounded-lg shadow-sm hover:shadow-md transition-shadow"
                 draggable="true"
                 on:dragstart={(e) => handleDragStart(e, card)}
                 on:dragover={(e) => handleDragOver(e, card)}
@@ -171,15 +159,42 @@
                 aria-label="{card.name}, {card.type_line}, Quantity: {card.quantity || 1}"
               >
                 <div class="flex-shrink-0 mr-3 w-16">
-                  {#if card.image_uris?.art_crop}
-                    <img 
-                      src={card.image_uris.art_crop} 
-                      alt="" 
-                      class="w-full h-12 object-cover rounded shadow-sm"
-                      loading="lazy"
-                      fetchpriority="low"
-                      aria-hidden="true"
-                    />
+                  {#if card.image_uris}
+                    <picture>
+                      <!-- Tiny placeholder while loading -->
+                      <img 
+                        src={card.image_uris.small} 
+                        alt=""
+                        class="w-full h-12 object-cover rounded shadow-sm transition-opacity duration-300"
+                        style="opacity: 0.1"
+                        aria-hidden="true"
+                        width="146"
+                        height="204"
+                      />
+                      <!-- Main image with responsive sources -->
+                      <source
+                        media="(min-width: 1024px)"
+                        srcset={card.image_uris.normal}
+                        type="image/jpg"
+                      >
+                      <source
+                        media="(min-width: 640px)"
+                        srcset={card.image_uris.small}
+                        type="image/jpg"
+                      >
+                      <img 
+                        src={card.image_uris.art_crop}
+                        alt=""
+                        class="w-full h-12 object-cover rounded shadow-sm absolute inset-0 transition-opacity duration-300"
+                        loading="lazy"
+                        decoding="async"
+                        fetchpriority="low"
+                        onload="this.style.opacity = 1"
+                        aria-hidden="true"
+                        width="146"
+                        height="204"
+                      />
+                    </picture>
                   {/if}
                 </div>
                 <div class="flex-1 min-w-0 pr-2">
@@ -239,8 +254,23 @@
     outline-offset: 2px;
   }
 
+  picture {
+    position: relative;
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  picture img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+  }
+
   @media (prefers-reduced-motion: reduce) {
-    .transition-colors {
+    .transition-opacity {
       transition: none;
     }
   }

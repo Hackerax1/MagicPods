@@ -1,26 +1,47 @@
 // Simple in-memory cache for API responses
+import { gzip, ungzip } from 'node:zlib';
+import { promisify } from 'node:util';
+
+const gzipAsync = promisify(gzip);
+const ungzipAsync = promisify(ungzip);
+
 type CacheEntry = {
-  data: any;
+  data: Buffer;  // Compressed data
   expiry: number;
+  etag?: string;
 };
 
 const cache = new Map<string, CacheEntry>();
+
+// TTL constants
+const TTL = {
+  CARDS: 24 * 60 * 60,    // 24 hours for card data
+  PODS: 5 * 60,           // 5 minutes for pod data
+  DECKS: 5 * 60,         // 5 minutes for deck data
+  COLLECTIONS: 15 * 60,   // 15 minutes for collections
+  DEFAULT: 5 * 60         // 5 minutes default
+};
 
 /**
  * Cache API response data with TTL (Time To Live)
  * @param key Cache key
  * @param data Data to cache
- * @param ttlSeconds Time to live in seconds (default: 5 minutes)
+ * @param ttlSeconds Time to live in seconds
+ * @param etag Optional ETag for cache validation
  */
-export function cacheResponse(key: string, data: any, ttlSeconds: number = 300): void {
-  // Don't cache null or undefined data
-  if (data === null || data === undefined) {
-    return;
-  }
-  
+export async function cacheResponse(
+  key: string, 
+  data: any, 
+  category: keyof typeof TTL = 'DEFAULT',
+  etag?: string
+): Promise<void> {
+  if (data === null || data === undefined) return;
+
+  const compressed = await gzipAsync(Buffer.from(JSON.stringify(data)));
   const entry: CacheEntry = {
-    data,
-    expiry: Date.now() + (ttlSeconds * 1000)
+    data: compressed,
+    expiry: Date.now() + (TTL[category] * 1000),
+    etag
   };
   
   cache.set(key, entry);
@@ -29,30 +50,47 @@ export function cacheResponse(key: string, data: any, ttlSeconds: number = 300):
 /**
  * Get cached response if available and not expired
  * @param key Cache key
- * @returns Cached data or undefined if not found or expired
+ * @param reqEtag Optional ETag from request for validation
+ * @returns Cached data or undefined if not found/expired
  */
-export function getCachedResponse(key: string): any {
+export async function getCachedResponse(key: string, reqEtag?: string): Promise<any> {
   const entry = cache.get(key);
   
-  // Return undefined if nothing cached or entry expired
   if (!entry || Date.now() > entry.expiry) {
-    if (entry) {
-      // Clean up expired entry
-      cache.delete(key);
-    }
+    if (entry) cache.delete(key);
     return undefined;
   }
-  
-  return entry.data;
+
+  // ETag validation if provided
+  if (reqEtag && entry.etag && reqEtag !== entry.etag) {
+    return undefined;
+  }
+
+  try {
+    const decompressed = await ungzipAsync(entry.data);
+    return JSON.parse(decompressed.toString());
+  } catch (error) {
+    console.error('Cache decompression error:', error);
+    cache.delete(key);
+    return undefined;
+  }
 }
 
 /**
  * Invalidate cached response
  * @param key Cache key to invalidate (if not provided, clears all cache)
+ * @param category Optional category to clear all related caches
  */
-export function invalidateCache(key?: string): void {
+export function invalidateCache(key?: string, category?: keyof typeof TTL): void {
   if (key) {
     cache.delete(key);
+  } else if (category) {
+    // Clear all entries of a specific category
+    for (const [k, entry] of cache.entries()) {
+      if (k.startsWith(category.toLowerCase())) {
+        cache.delete(k);
+      }
+    }
   } else {
     cache.clear();
   }
@@ -65,3 +103,13 @@ export function invalidateCache(key?: string): void {
 export function getCacheSize(): number {
   return cache.size;
 }
+
+// Periodic cleanup of expired entries
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, entry] of cache.entries()) {
+    if (now > entry.expiry) {
+      cache.delete(key);
+    }
+  }
+}, 60000); // Run every minute
