@@ -30,5 +30,14 @@ export async function handleAuth(event: RequestEvent, options: ProtectedRouteOpt
         return errorResponse('Email not verified', 403);
     }
 
-    return null;
+    return user;
+}
+
+export async function withAuth(event: RequestEvent, callback: (event: RequestEvent, context: { user: any }) => Promise<Response>) {
+    const user = await handleAuth(event);
+    if (!user) {
+        return errorResponse(ApiErrors.UNAUTHORIZED, 401);
+    }
+
+    return callback(event, { user });
 }

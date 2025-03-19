@@ -2,10 +2,12 @@
 	import '../app.css';
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
+	import { base } from '$app/paths';
 	import { user } from '$lib/stores/userStore';
 	import type { User } from '$lib/stores/userStore';
 	import { initializeAppShortcuts } from '$lib/utils/keyboard';
 	import { initOfflineSupport } from '$lib/utils/offline';
+	import { getRoute } from '$lib/utils/routes';
 	import OfflineIndicator from '$lib/components/ui/OfflineIndicator.svelte';
 	import ToastContainer from '$lib/components/ui/ToastContainer.svelte';
 
@@ -31,7 +33,7 @@
 		
 		// Check auth status on mount
 		try {
-			const response = await fetch('/api/auth');
+			const response = await fetch(`${base}/api/auth`);
 			const data = await response.json();
 			if (data.user) {
 				user.set(data.user);
@@ -64,14 +66,14 @@
 
 	async function handleLogout() {
 		try {
-			await fetch('/api/auth', {
+			await fetch(`${base}/api/auth`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ action: 'logout' })
 			});
 			
 			user.set(null);
-			window.location.href = '/';
+			window.location.href = base || '/';
 		} catch (error) {
 			console.error('Logout failed:', error);
 		}
@@ -84,17 +86,17 @@
 			<div class="flex justify-between items-center py-4">
 				<!-- Logo/Title -->
 				<div class="flex items-center space-x-2">
-					<img src="/favicon.png" alt="MTG Logo" class="w-8 h-8">
-					<a href="/" class="text-xl font-bold">MTGSvelte</a>
+					<img src="{base}/favicon.png" alt="MTG Logo" class="w-8 h-8">
+					<a href="{base}/" class="text-xl font-bold">MTGSvelte</a>
 				</div>
 				
 				<!-- Desktop Navigation -->
 				<nav class="hidden md:flex items-center space-x-6">
 					{#if currentUser}
-						<a href="/auth" class="hover:text-indigo-200 transition">Dashboard</a>
-						<a href="/auth/decks" class="hover:text-indigo-200 transition">Decks</a>
-						<a href="/auth/collection" class="hover:text-indigo-200 transition">Collection</a>
-						<a href="/auth/pods" class="hover:text-indigo-200 transition">Pods</a>
+						<a href="{getRoute('auth')}" class="hover:text-indigo-200 transition">Dashboard</a>
+						<a href="{getRoute('auth/decks')}" class="hover:text-indigo-200 transition">Decks</a>
+						<a href="{getRoute('auth/collection')}" class="hover:text-indigo-200 transition">Collection</a>
+						<a href="{getRoute('auth/pods')}" class="hover:text-indigo-200 transition">Pods</a>
 						<div class="relative group">
 							<button class="flex items-center hover:text-indigo-200 transition">
 								<span class="mr-1">{currentUser.username}</span>
@@ -117,7 +119,7 @@
 							</div>
 						</div>
 					{:else}
-						<a href="/" class="hover:text-indigo-200 transition">Home</a>
+						<a href="{base}/" class="hover:text-indigo-200 transition">Home</a>
 					{/if}
 				</nav>
 				
@@ -142,10 +144,10 @@
 				<div id="nav-menu" class="md:hidden pb-4">
 					<div class="flex flex-col space-y-3">
 						{#if currentUser}
-							<a href="/auth" class="hover:bg-indigo-800 px-3 py-2 rounded transition">Dashboard</a>
-							<a href="/auth/decks" class="hover:bg-indigo-800 px-3 py-2 rounded transition">Decks</a>
-							<a href="/auth/collection" class="hover:bg-indigo-800 px-3 py-2 rounded transition">Collection</a>
-							<a href="/auth/pods" class="hover:bg-indigo-800 px-3 py-2 rounded transition">Pods</a>
+							<a href="{getRoute('auth')}" class="hover:bg-indigo-800 px-3 py-2 rounded transition">Dashboard</a>
+							<a href="{getRoute('auth/decks')}" class="hover:bg-indigo-800 px-3 py-2 rounded transition">Decks</a>
+							<a href="{getRoute('auth/collection')}" class="hover:bg-indigo-800 px-3 py-2 rounded transition">Collection</a>
+							<a href="{getRoute('auth/pods')}" class="hover:bg-indigo-800 px-3 py-2 rounded transition">Pods</a>
 							<div class="px-3 py-2 text-xs">
 								<p>Press <kbd class="px-1 py-0.5 bg-indigo-600 border border-indigo-500 rounded">?</kbd> for shortcuts</p>
 							</div>
@@ -155,7 +157,7 @@
 								Logout
 							</button>
 						{:else}
-							<a href="/" class="hover:bg-indigo-800 px-3 py-2 rounded transition">Home</a>
+							<a href="{base}/" class="hover:bg-indigo-800 px-3 py-2 rounded transition">Home</a>
 						{/if}
 					</div>
 				</div>

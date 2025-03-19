@@ -1,13 +1,21 @@
 // Service Worker for MTG Svelte app - offline support
 const CACHE_NAME = 'mtg-svelte-cache-v1';
 const DYNAMIC_CACHE = 'mtg-svelte-dynamic-v1';
+const REPO_NAME = 'MTGSvelte3'; // GitHub repository name - Update this if you change your repo name
 
-// Assets to cache on install
+// Function to determine the base URL
+function getBaseUrl() {
+  return location.hostname === 'localhost' || location.hostname === '127.0.0.1'
+    ? ''
+    : `/${REPO_NAME}`;
+}
+
+// Assets to cache on install - include base path for GitHub Pages
 const STATIC_ASSETS = [
-  '/',
-  '/favicon.png',
-  '/app.css',
-  '/index.js',
+  `${getBaseUrl()}/`,
+  `${getBaseUrl()}/favicon.png`,
+  `${getBaseUrl()}/app.css`,
+  `${getBaseUrl()}/index.js`,
   // Add other static assets like fonts, images, etc.
 ];
 
@@ -48,7 +56,8 @@ const API_ROUTES = [
 
 // Simple function to check if a URL is an API route
 function isApiRoute(url) {
-  return API_ROUTES.some(route => url.includes(route));
+  const base = getBaseUrl();
+  return API_ROUTES.some(route => url.includes(`${base}${route}`));
 }
 
 // Function to check if a request is for a card image from Scryfall or similar
@@ -159,9 +168,11 @@ async function syncDecks() {
     const pendingChanges = await getPendingChanges();
     if (!pendingChanges || pendingChanges.length === 0) return;
     
+    const baseUrl = getBaseUrl();
+    
     // Process each pending change
     for (const change of pendingChanges) {
-      await fetch('/api/deck', {
+      await fetch(`${baseUrl}/api/deck`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

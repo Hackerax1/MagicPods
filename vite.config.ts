@@ -19,12 +19,11 @@ export default defineConfig({
 			output: {
 				manualChunks: {
 					'scryfall': ['$lib/utils/scryfall'],
-					'card-scanner': ['$lib/components/CardScanner'],
-					'deck-builder': ['$lib/components/DeckBuilder', '$lib/components/DeckList', '$lib/components/DeckStats', '$lib/components/DeckExport'],
-					'pod-manager': ['$lib/components/Pod', '$lib/components/TradeHistory', '$lib/components/TradeNotifications'],
-					'ui': ['$lib/components/ui/Button', '$lib/components/ui/Card', '$lib/components/ui/Input', '$lib/components/ui/Select']
+						'ui': ['$lib/components/ui/Button', '$lib/components/ui/Card', '$lib/components/ui/Input', '$lib/components/ui/Select']
 				}
-			}
+			},
+			// Exclude server-specific files from the client build
+			external: ['fs', 'path', '$lib/utils/scryfall.server']
 		}
 	},
 	resolve: {

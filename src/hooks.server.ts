@@ -1,4 +1,4 @@
-import { startBulkDataUpdates } from '$lib/utils/scryfall';
+import { startBulkDataUpdates } from '$lib/utils/scryfall.server';
 import { invalidateCache } from '$lib/server/utils/apiResponseCache';
 import type { Handle } from '@sveltejs/kit';
 import { validateToken } from '$lib/server/auth';
@@ -17,6 +17,11 @@ export const handle: Handle = async ({ event, resolve }) => {
     const authResult = await handleAuth(event);
     if (authResult) {
         return authResult;
+    }
+
+    // Invalidate cache for specific routes if needed
+    if (event.url.pathname.startsWith('/api')) {
+        invalidateCache(event.url.pathname);
     }
 
     const response = await resolve(event);

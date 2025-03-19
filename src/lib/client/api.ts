@@ -1,5 +1,7 @@
+import { base } from '$app/paths';
+
 export async function getDecks() {
-	const response = await fetch('/api/deck');
+	const response = await fetch(`${base}/api/deck`);
 	if (!response.ok) {
 		throw new Error('Failed to fetch decks');
 	}
@@ -7,7 +9,7 @@ export async function getDecks() {
 }
 
 export async function fetchUserPods(userId: string) {
-	const response = await fetch(`/api/pods/${userId}`);
+	const response = await fetch(`${base}/api/pods/${userId}`);
 	if (!response.ok) {
 		throw new Error('Failed to fetch user pods');
 	}
@@ -15,7 +17,7 @@ export async function fetchUserPods(userId: string) {
 }
 
 export async function fetchPodMembers(podId: string) {
-	const response = await fetch(`/api/pods/${podId}/members`);
+	const response = await fetch(`${base}/api/pods/${podId}/members`);
 	if (!response.ok) {
 		throw new Error('Failed to fetch pod members');
 	}

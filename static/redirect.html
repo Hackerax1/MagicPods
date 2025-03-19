@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>MTGSvelte</title>
+    <script type="text/javascript">
+        // Single Page App GitHub Pages redirect
+        // This handles the GitHub Pages routing for client-side navigation
+        (function() {
+            // Get the current path
+            const path = window.location.pathname;
+            const repo = '/MTGSvelte3'; // Update this if you change your repo name
+            
+            // If this is a GitHub Pages hosted site and the path starts with the repo name
+            if (path.indexOf(repo) === 0) {
+                // Strip the repo name from the path
+                const pathWithoutRepo = path.replace(repo, '');
+                
+                // Redirect to the SPA with the correct path
+                window.location.replace(`${repo}/?path=${encodeURIComponent(pathWithoutRepo)}`);
+            }
+        })();
+    </script>
+</head>
+<body>
+    <p>Redirecting...</p>
+</body>
+</html>

@@ -1,0 +1,7 @@
+# GitHub Pages configuration
+
+# Use the GitHub Pages with Actions workflow (automatically set by our actions workflow)
+name: GitHub Pages
+on:
+  push:
+    branches: [ main ]
