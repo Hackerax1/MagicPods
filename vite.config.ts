@@ -19,7 +19,7 @@ export default defineConfig({
 			output: {
 				manualChunks: {
 					'scryfall': ['$lib/utils/scryfall'],
-						'ui': ['$lib/components/ui/Button', '$lib/components/ui/Card', '$lib/components/ui/Input', '$lib/components/ui/Select']
+					'ui': ['$lib/components/ui/Button.svelte', '$lib/components/ui/Card.svelte', '$lib/components/ui/Input.svelte', '$lib/components/ui/Select.svelte']
 				}
 			},
 			// Exclude server-specific files from the client build
@@ -28,8 +28,9 @@ export default defineConfig({
 	},
 	resolve: {
 		alias: {
-			// ...existing code...
+			$lib: '/src/lib'
 		},
+		extensions: ['.svelte', '.js', '.ts']
 	},
 	optimizeDeps: {
 		exclude: [
@@ -43,7 +44,8 @@ export default defineConfig({
 			'drizzle-orm/postgres-js',
 			'postgres',
 			'drizzle-orm/pg-core'
-		]
+		],
+		include: ['svelte']
 	},
 	// Add image performance options
 	server: {

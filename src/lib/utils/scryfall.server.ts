@@ -40,6 +40,36 @@ async function downloadAndSaveFile(url: string, filename: string) {
     });
 }
 
+async function updateBulkData() {
+    try {
+        // Ensure data directory exists
+        if (!fs.existsSync(DATA_DIR)) {
+            fs.mkdirSync(DATA_DIR, { recursive: true });
+        }
+
+        const bulkData = await fetchBulkData();
+        
+        for (const item of bulkData) {
+            if (item.type === 'default_cards' || item.type === 'all_cards') {
+                await downloadAndSaveFile(item.download_uri, `${item.type}.json`);
+            }
+        }
+        
+        console.log('Bulk data update completed successfully');
+    } catch (error) {
+        console.error('Error updating bulk data:', error);
+    }
+}
+
+export function startBulkDataUpdates(intervalHours: number = 24) {
+    // Run initial update
+    updateBulkData();
+    
+    // Set up periodic updates
+    const interval = intervalHours * 60 * 60 * 1000; // Convert hours to milliseconds
+    setInterval(updateBulkData, interval);
+}
+
 export async function getBulkData(type: string) {
     const filePath = path.join(DATA_DIR, `${type}.json`);
     if (!fs.existsSync(filePath)) {

@@ -1,7 +1,6 @@
 import { startBulkDataUpdates } from '$lib/utils/scryfall.server';
 import { invalidateCache } from '$lib/server/utils/apiResponseCache';
 import type { Handle } from '@sveltejs/kit';
-import { validateToken } from '$lib/server/auth';
 import { handleAuth } from '$lib/server/utils/middleware';
 
 // Initialize performance optimizations
@@ -15,8 +14,13 @@ setInterval(() => {
 export const handle: Handle = async ({ event, resolve }) => {
     // Handle authentication
     const authResult = await handleAuth(event);
-    if (authResult) {
+    if (authResult instanceof Response) {
         return authResult;
+    }
+    
+    // If auth was successful, authResult contains the user data
+    if (authResult) {
+        event.locals.user = authResult;
     }
 
     // Invalidate cache for specific routes if needed

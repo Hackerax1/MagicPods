@@ -1,5 +1,6 @@
 import adapter from '@sveltejs/adapter-static';
 import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
+import { resolve } from 'path';
 
 // Check if we're building for GitHub Pages
 const isGitHubPages = process.env.GITHUB_PAGES === 'true';
@@ -23,6 +24,9 @@ const config = {
 		// Needed for GitHub Pages deployment - repository name
 		paths: {
 			base: isGitHubPages ? '/MTGSvelte3' : ''
+		},
+		alias: {
+			$lib: resolve('./src/lib')
 		},
 		// This tells SvelteKit to prerender routes
 		prerender: {

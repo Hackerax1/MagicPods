@@ -1,9 +1,9 @@
 // Simple in-memory cache for API responses
-import { gzip, ungzip } from 'node:zlib';
+import { gzip, unzip } from 'node:zlib';
 import { promisify } from 'node:util';
 
 const gzipAsync = promisify(gzip);
-const ungzipAsync = promisify(ungzip);
+const ungzipAsync = promisify(unzip);
 
 type CacheEntry = {
   data: Buffer;  // Compressed data
