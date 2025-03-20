@@ -32,7 +32,10 @@ const config = {
 		prerender: {
 			handleHttpError: ({ path, referrer, message }) => {
 				// Ignore 404s and API errors during prerendering for GitHub Pages
-				if (isGitHubPages) return;
+				if (isGitHubPages) {
+					console.warn(`[GitHub Pages] Ignoring prerender error for ${path}: ${message}`);
+					return;
+				}
 				
 				// Only fail on errors unrelated to missing APIs or 404s
 				if (message.includes('Not found') || path.includes('/api/')) return;
@@ -44,7 +47,16 @@ const config = {
 			handleMissingId: isGitHubPages ? 'ignore' : 'fail',
 			// Only prerender specific routes for GitHub Pages
 			entries: isGitHubPages ? ['/', '/404'] : undefined
-		}
+		},
+		// For GitHub Pages, disable server-side rendering
+		csp: isGitHubPages ? {
+			mode: 'auto',
+			directives: {
+				'script-src': ['self']
+			}
+		} : undefined,
+		// Disable server-side modules for GitHub Pages
+		moduleExtensions: isGitHubPages ? [] : ['.server.js', '.server.ts']
 	}
 };
 

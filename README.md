@@ -98,6 +98,31 @@ npm run build
 docker-compose -f docker-compose.prod.yml up -d
 ```
 
+### GitHub Pages Deployment
+
+This project is configured for automatic deployment to GitHub Pages:
+
+1. Push your changes to the `main` branch:
+```bash
+git push origin main
+```
+
+2. The GitHub Actions workflow will automatically build and deploy your site to GitHub Pages.
+
+3. Manual deployment (if needed):
+```bash
+npm run build:github  # Build with GitHub Pages configuration
+# Then upload the 'build' directory to GitHub Pages
+```
+
+4. Access your deployed site at: `https://[your-username].github.io/MTGSvelte3/`
+
+5. To test the GitHub Pages build locally:
+```bash
+npm run build:github
+npm run preview
+```
+
 ### Environment Variables
 
 Key environment variables:

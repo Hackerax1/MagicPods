@@ -8,6 +8,17 @@
     * [ ] Identify core SvelteKit features in use
     * [ ] Research alternative routing solutions
     * [ ] Plan progressive migration strategy
+*   [x] **GitHub Pages Deployment:** Set up the project for GitHub Pages hosting.
+    * [x] Configure GitHub repository settings
+    * [x] Set up CI/CD workflow for automatic deployment
+    * [x] Ensure static asset paths are compatible with GitHub Pages
+    * [x] Update build configuration for GitHub Pages environment
+    * [x] Fix server-side code issues for static deployment
+*   [ ] **Docker Hub Integration for Card Scanner:** Upload the card_scanner as an independent app to Docker Hub.
+    * [ ] Finalize Dockerfile configuration
+    * [ ] Create Docker Hub account/organization
+    * [ ] Set up automated builds
+    * [ ] Document deployment and usage instructions
 
 
 ## MEDIUM PRIORITY
@@ -65,4 +76,3 @@
     * Daily automated backups
     * Weekly query optimization review
     * Monthly data cleanup
-

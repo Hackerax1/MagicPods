@@ -2,6 +2,9 @@ import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
 import { imagetools } from 'vite-imagetools';
 
+// Check if we're building for GitHub Pages
+const isGitHubPages = process.env.GITHUB_PAGES === 'true';
+
 export default defineConfig({
 	plugins: [
 		sveltekit(),
@@ -56,15 +59,17 @@ export default defineConfig({
 	preview: {
 		headers: {
 			// Add cache headers for images
-			'/*.webp': {
-				'Cache-Control': 'public, max-age=31536000, immutable'
-			},
-			'/*.jpg': {
-				'Cache-Control': 'public, max-age=31536000, immutable'
-			},
-			'/*.png': {
-				'Cache-Control': 'public, max-age=31536000, immutable'
-			}
+			'/*.webp': [
+				'Cache-Control: public, max-age=31536000, immutable'
+			],
+			'/*.jpg': [
+				'Cache-Control: public, max-age=31536000, immutable'
+			],
+			'/*.png': [
+				'Cache-Control: public, max-age=31536000, immutable'
+			]
 		}
-	}
+	},
+	// Base path for GitHub Pages deployment
+	base: isGitHubPages ? '/MTGSvelte3/' : '/'
 });

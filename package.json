@@ -6,7 +6,7 @@
 	"scripts": {
 		"dev": "vite dev",
 		"build": "vite build && npm run create-404",
-		"create-404": "cp build/index.html build/404.html",
+		"create-404": "node --experimental-specifier-resolution=node scripts/create-404.js",
 		"build:github": "cross-env GITHUB_PAGES=true npm run build",
 		"preview": "vite preview",
 		"prepare": "svelte-kit sync || echo ''",
