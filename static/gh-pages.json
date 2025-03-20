@@ -1,0 +1,7 @@
+{
+  "homepage": "https://yourusername.github.io/MTGSvelte3",
+  "publicPath": "/MTGSvelte3/",
+  "routes": [
+    { "route": "/*", "serve": "/index.html" }
+  ]
+}

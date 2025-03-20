@@ -2,29 +2,31 @@
 <html lang="en">
 <head>
     <meta charset="utf-8" />
-    <title>MTGSvelte</title>
+    <title>Page Not Found | MTGSvelte</title>
     <script type="text/javascript">
-        // Single Page App GitHub Pages redirect
-        // This handles the GitHub Pages routing for client-side navigation
+        // Single Page App GitHub Pages 404 redirect
+        // This captures all 404s and redirects them to the base app with the path in the query
         (function() {
             // Get the current path
             const path = window.location.pathname;
             const repo = '/MTGSvelte3'; // Repository name
             
-            // If this is a GitHub Pages hosted site and the path starts with the repo name
+            // If the path starts with the repo name, redirect with the path as a query parameter
             if (path.indexOf(repo) === 0) {
-                // Strip the repo name from the path
+                // Prepare path for redirect
                 const pathWithoutRepo = path.replace(repo, '');
+                const queryParams = window.location.search || '';
+                const hash = window.location.hash || '';
                 
                 // Redirect to the SPA with the correct path
-                window.location.replace(`${repo}/?path=${encodeURIComponent(pathWithoutRepo)}`);
+                window.location.replace(`${repo}/?path=${encodeURIComponent(pathWithoutRepo)}${queryParams ? '&' + queryParams.substring(1) : ''}${hash}`);
             }
         })();
     </script>
-    <!-- Fallback meta redirect after 0.5 seconds if the script doesn't execute -->
     <meta http-equiv="refresh" content="0.5;url=/MTGSvelte3/" />
 </head>
 <body>
+    <h1>Page Not Found</h1>
     <p>Redirecting to application...</p>
     <p>If you are not redirected automatically, <a href="/MTGSvelte3/">click here</a>.</p>
 </body>

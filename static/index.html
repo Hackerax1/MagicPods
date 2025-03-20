@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>MTGSvelte</title>
+    <script type="text/javascript">
+        // Single Page App GitHub Pages redirect script
+        // Modified from https://github.com/rafgraph/spa-github-pages
+        (function() {
+            var segmentCount = 1; // For repo: /MTGSvelte3/
+            var l = window.location;
+            
+            // Don't redirect if on the homepage
+            if (l.search) {
+                var q = {};
+                l.search.slice(1).split('&').forEach(function(v) {
+                    var a = v.split('=');
+                    q[a[0]] = a.length > 1 ? decodeURIComponent(a[1]) : true;
+                });
+                
+                // If the path is stored in the query string 'path' parameter
+                if (q.path) {
+                    var route = q.path.replace(/^\/*/, '/'); // Remove leading slashes
+                    if (route.indexOf('/') !== 0) route = '/' + route;
+                    
+                    // Redirect to the path specified in the url with remaining query params
+                    l.search = Object.keys(q)
+                        .filter(function(key) { return key !== 'path'; })
+                        .map(function(key) { return key + (q[key] === true ? '' : '=' + encodeURIComponent(q[key])); })
+                        .join('&');
+                    
+                    l.pathname = '/MTGSvelte3' + route;
+                }
+            } else {
+                var redirect = l.pathname.split('/').slice(0, 1 + segmentCount).join('/');
+                l.pathname.slice(redirect.length).split('/').slice(1).join('/');
+            }
+        })();
+    </script>
+</head>
+<body>
+    <p>Redirecting...</p>
+</body>
+</html>

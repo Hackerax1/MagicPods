@@ -37,7 +37,30 @@ jobs:
         run: npm ci
       
       - name: Build
-        run: npm run build
+        run: |
+          # Set environment variable for GitHub Pages
+          export GITHUB_PAGES=true
+          # Build the project
+          npm run build
+        env:
+          NODE_ENV: production
+      
+      - name: Create GitHub Pages files
+        run: |
+          # Ensure .nojekyll exists (prevents GitHub Pages from using Jekyll)
+          touch build/.nojekyll
+          
+          # Make sure we have a 404.html page
+          # The create-404 script might fail, so let's handle it manually
+          if [ ! -f build/404.html ]; then
+            cp static/404.html build/404.html
+          fi
+          
+          # Copy index.html to 200.html for SPA routing
+          cp build/index.html build/200.html
+          
+          # List build directory contents for debugging
+          ls -la build/
       
       - name: Setup Pages
         uses: actions/configure-pages@v4

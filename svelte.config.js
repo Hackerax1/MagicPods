@@ -16,11 +16,11 @@ const config = {
 			// default options are shown
 			pages: 'build',           // Output directory for the client build
 			assets: 'build',          // Output directory for assets
-			fallback: '200.html',     // Fallback for SPA routing
+			fallback: 'index.html',   // Fallback for SPA routing (changed from 200.html for GitHub Pages)
 			precompress: false,       // Precompress assets
 			strict: !isGitHubPages    // Less strict when building for GitHub Pages
 		}),
-		// Needed for GitHub Pages deployment - replace 'MTGSvelte3' with your repository name
+		// Needed for GitHub Pages deployment - repository name
 		paths: {
 			base: isGitHubPages ? '/MTGSvelte3' : ''
 		},
@@ -39,7 +39,7 @@ const config = {
 			// Ignore missing IDs for dynamic routes in GitHub Pages mode
 			handleMissingId: isGitHubPages ? 'ignore' : 'fail',
 			// Only prerender specific routes for GitHub Pages
-			entries: isGitHubPages ? ['/'] : undefined
+			entries: isGitHubPages ? ['/', '/404'] : undefined
 		}
 	}
 };
