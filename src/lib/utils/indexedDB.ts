@@ -8,7 +8,7 @@ type IndexedDBStoreConfig = {
 
 // Database configuration
 const DB_NAME = 'mtgsvelte_db';
-const DB_VERSION = 1;
+const DB_VERSION = 2; // Incrementing version to add new store
 const STORES: IndexedDBStoreConfig[] = [
   {
     name: 'cards',
@@ -29,6 +29,15 @@ const STORES: IndexedDBStoreConfig[] = [
   {
     name: 'collections',
     keyPath: 'id'
+  },
+  // New store for API cache with stale-while-revalidate pattern
+  {
+    name: 'api_cache',
+    keyPath: 'cacheKey',
+    indices: [
+      { name: 'timestamp', keyPath: 'timestamp', unique: false },
+      { name: 'expiresAt', keyPath: 'expiresAt', unique: false }
+    ]
   }
 ];
 
@@ -179,5 +188,31 @@ export function closeDB(): void {
   if (dbPromise) {
     dbPromise.then(db => db.close());
     dbPromise = null;
+  }
+}
+
+// Clean expired items from the API cache store
+export async function cleanExpiredCache(): Promise<void> {
+  if (!browser) return;
+  
+  try {
+    const db = await initDB();
+    const transaction = db.transaction('api_cache', 'readwrite');
+    const store = transaction.objectStore('api_cache');
+    const index = store.index('expiresAt');
+    const now = Date.now();
+    
+    const request = index.openCursor(IDBKeyRange.upperBound(now));
+    
+    request.onsuccess = (event) => {
+      const cursor = (event.target as IDBRequest).result;
+      if (cursor) {
+        // Delete expired item
+        cursor.delete();
+        cursor.continue();
+      }
+    };
+  } catch (error) {
+    console.error('Error cleaning expired cache:', error);
   }
 }

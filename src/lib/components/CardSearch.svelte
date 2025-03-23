@@ -1,5 +1,6 @@
 <script lang="ts">
   import { fetchCard } from '$lib/utils/scryfall';
+  import CardImage from '$lib/components/ui/CardImage.svelte';
 
   interface Card {
     id?: string;
@@ -122,12 +123,13 @@
     <div class="mt-4 border border-gray-200 rounded-md p-3">
       <div class="flex flex-col sm:flex-row items-center gap-3">
         <div class="flex-shrink-0 w-full sm:w-auto">
-          <img 
-            src={cardData.image_uris.small} 
-            alt={cardData.name} 
-            class="w-full sm:w-24 h-auto rounded shadow-sm object-contain mx-auto"
+          <CardImage 
+            cardId={cardData.id || cardData.name}
+            imageUrl={cardData.image_uris.small} 
+            altText={cardData.name} 
             loading="lazy"
-            fetchpriority="low"
+            fetchPriority="low"
+            sizes="(max-width: 640px) 100vw, 96px"
           />
         </div>
         <div class="flex-1 w-full">

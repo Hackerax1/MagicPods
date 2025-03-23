@@ -1,7 +1,9 @@
 <script lang="ts">
   import { fetchCard } from '$lib/utils/scryfall';
+  import CardImage from '$lib/components/ui/CardImage.svelte';
 
   interface Card {
+    id?: string;  // Added id property to fix the error
     name: string;
     image_uris: {
       normal: string;
@@ -112,12 +114,15 @@
           <div class="flex flex-col sm:flex-row gap-6">
             {#if cardData.image_uris?.normal}
               <div class="w-full sm:w-1/3">
-                <img 
-                  src={cardData.image_uris.normal} 
-                  alt="{cardData.name} card illustration"
-                  class="w-full rounded-lg shadow-sm"
+                <CardImage 
+                  cardId={cardData.id || cardData.name}
+                  imageUrl={cardData.image_uris.normal} 
+                  altText={`${cardData.name} card illustration`}
                   loading="lazy"
-                  fetchpriority="low"
+                  fetchPriority="high"
+                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 33vw, 488px"
+                  decoding="async"
+                  class="w-full rounded-lg shadow-sm"
                 />
               </div>
             {/if}

@@ -3,9 +3,8 @@
   import CardSearch from './CardSearch.svelte';
   import DeckInfo from './DeckInfo.svelte';
   import DeckList from './DeckList.svelte';
-  import DeckStats from './DeckStats.svelte';
-  import DeckExport from './DeckExport.svelte';
-  import DeckTabs from './DeckTabs.svelte';
+  // Import components lazily when needed
+  import LazyLoad from '$lib/components/ui/LazyLoad.svelte';
   
   // Import UI components
   import Button from '$lib/components/ui/Button.svelte';
@@ -43,6 +42,13 @@
   let alertType: 'success' | 'error' = 'success';
   let alertMessage = '';
   let showKeyboardShortcuts = false;
+
+  // Lazy loading state
+  let statsComponentLoaded = false;
+  let exportComponentLoaded = false;
+  let DeckStatsComponent: any;
+  let DeckExportComponent: any;
+  let DeckTabsComponent: any;
 
   const handleCardFound = (card: Card) => {
     const existingCardIndex = deck.findIndex(c => c.name === card.name);
@@ -83,7 +89,6 @@
       // Simulate API call to save deck
       await new Promise(resolve => setTimeout(resolve, 1000));
       console.log('Saved deck:', { name: deckName, description: deckDescription, cards: deck });
-      
       savingDeck = false;
       error = '';
       showAlert = true;
@@ -133,9 +138,27 @@
 
   function switchTab(tabName: string) {
     currentTab = tabName;
+    
+    // Preload components for selected tab
+    if (tabName === 'stats' && !statsComponentLoaded) {
+      import('./DeckStats.svelte').then(module => {
+        DeckStatsComponent = module.default;
+        statsComponentLoaded = true;
+      });
+    } else if (tabName === 'export' && !exportComponentLoaded) {
+      import('./DeckExport.svelte').then(module => {
+        DeckExportComponent = module.default;
+        exportComponentLoaded = true;
+      });
+    }
   }
 
   onMount(() => {
+    // Preload DeckTabs component
+    import('./DeckTabs.svelte').then(module => {
+      DeckTabsComponent = module.default;
+    });
+    
     // Register application-wide shortcuts
     keyboardManager.register({
       key: '?',
@@ -196,6 +219,16 @@
         // Could add more handlers here for other modals or dialogs
       }
     });
+    
+    // Preload the stats component after a delay
+    setTimeout(() => {
+      if (!statsComponentLoaded) {
+        import('./DeckStats.svelte').then(module => {
+          DeckStatsComponent = module.default;
+          statsComponentLoaded = true;
+        });
+      }
+    }, 3000);
   });
 
   onDestroy(() => {
@@ -224,7 +257,21 @@
       </Button>
     </div>
     
-    <DeckTabs bind:currentTab />
+    {#if DeckTabsComponent}
+      <svelte:component this={DeckTabsComponent} bind:currentTab />
+    {:else}
+      <!-- Placeholder while loading -->
+      <div class="flex flex-wrap sm:flex-nowrap border-b border-gray-200">
+        {#each [{ id: 'builder', label: 'Builder' }, { id: 'stats', label: 'Statistics' }, { id: 'export', label: 'Export' }] as tab}
+          <button 
+            class={`flex-1 min-w-[100px] px-4 py-2 font-medium text-sm ${currentTab === tab.id ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-gray-500 hover:text-indigo-500 hover:border-b-2 hover:border-indigo-300'} transition-colors`} 
+            on:click={() => switchTab(tab.id)}
+          >
+            {tab.label}
+          </button>
+        {/each}
+      </div>
+    {/if}
 
     {#if showAlert}
       <div class="p-4">
@@ -278,9 +325,31 @@
         </div>
       </div>
     {:else if currentTab === 'stats'}
-      <DeckStats {deck} />
+      <LazyLoad>
+        {#if statsComponentLoaded && DeckStatsComponent}
+          <svelte:component this={DeckStatsComponent} {deck} />
+        {:else}
+          <div class="p-4 text-center">
+            <div class="inline-block animate-spin h-8 w-8 border-4 border-indigo-500 border-t-transparent rounded-full" role="status">
+              <span class="sr-only">Loading statistics...</span>
+            </div>
+            <p class="mt-2 text-gray-600">Loading deck statistics...</p>
+          </div>
+        {/if}
+      </LazyLoad>
     {:else if currentTab === 'export'}
-      <DeckExport {deck} />
+      <LazyLoad>
+        {#if exportComponentLoaded && DeckExportComponent}
+          <svelte:component this={DeckExportComponent} {deck} />
+        {:else}
+          <div class="p-4 text-center">
+            <div class="inline-block animate-spin h-8 w-8 border-4 border-indigo-500 border-t-transparent rounded-full" role="status">
+              <span class="sr-only">Loading export options...</span>
+            </div>
+            <p class="mt-2 text-gray-600">Loading export options...</p>
+          </div>
+        {/if}
+      </LazyLoad>
     {/if}
   </Card>
 </div>

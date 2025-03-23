@@ -236,6 +236,9 @@
                       imageUrl={card.image_uris.art_crop}
                       altText={card.name}
                       loading="lazy"
+                      artOnly={true}
+                      fetchPriority="low"
+                      sizes="(max-width: 640px) 64px, 80px"
                     />
                   {/if}
                 </div>

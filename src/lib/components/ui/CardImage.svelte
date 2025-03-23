@@ -10,6 +10,8 @@
   export let artOnly: boolean = false;         // Whether to display just the art crop
   export let sizes: string = '(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw'; // Default sizes attribute
   export let loading: 'eager' | 'lazy' = 'lazy'; // Lazy loading by default
+  export let fetchPriority: 'high' | 'low' | 'auto' = 'auto'; // Fetch priority hint
+  export let decoding: 'sync' | 'async' | 'auto' = 'async'; // Image decoding hint
   
   // Internal state
   let loaded = false;
@@ -23,6 +25,11 @@
   
   // Determine which image to show
   $: displayUrl = loaded ? imageUrl : (placeholderUrl || getPlaceholderForCard(cardId));
+  
+  // Calculate tiny placeholder URL for progressive loading
+  $: tinyPlaceholderUrl = imageUrl && imageUrl.includes('scryfall.com') 
+    ? imageUrl.replace('/normal/', '/small/').replace(/\.[^.]+$/, '_tiny.jpg') 
+    : null;
   
   // Real Scryfall image sizes for optimal loading
   function generateSrcset(imageUrl: string): string {
@@ -55,6 +62,11 @@
   
   // Generate placeholder image data URL based on card ID
   function getPlaceholderForCard(id: string): string {
+    // If we have a tiny placeholder, use that instead
+    if (tinyPlaceholderUrl) {
+      return tinyPlaceholderUrl;
+    }
+    
     // If no ID, return generic placeholder
     if (!id) {
       return 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 680" fill="%23eee"%3E%3Crect width="488" height="680" rx="16" /%3E%3C/svg%3E';
@@ -150,6 +162,20 @@
     // Fall back to placeholder
     loaded = false;
   }
+  
+  // Preload high-resolution image for important cards
+  function preloadHighResolution() {
+    if (fetchPriority === 'high' && imageUrl) {
+      const highResUrl = imageUrl.replace('/normal/', '/large/');
+      const img = new Image();
+      img.src = highResUrl;
+    }
+  }
+  
+  // Call preload if needed
+  $: if (loaded && fetchPriority === 'high') {
+    preloadHighResolution();
+  }
 </script>
 
 <div class="card-image-container" class:art-only={artOnly}>
@@ -164,6 +190,8 @@
       style="position: absolute; opacity: 0; z-index: -1;"
       on:load={handleLoad}
       on:error={handleError}
+      decoding={decoding}
+      fetchpriority={fetchPriority}
     />
   {/if}
   
@@ -177,6 +205,7 @@
       class:error={error}
       alt={altText}
       loading={loading}
+      fetchpriority={fetchPriority === 'high' ? 'high' : 'auto'}
     />
     
     {#if !loaded}
@@ -202,6 +231,7 @@
     overflow: hidden;
     background-color: #f0f0f0;
     border-radius: 4.5%;
+    container-type: inline-size; /* Modern CSS containment */
   }
   
   .art-only {
@@ -222,6 +252,9 @@
     object-fit: contain;
     object-position: center;
     transition: filter 0.3s ease-in-out, opacity 0.3s ease-in-out;
+    backface-visibility: hidden; /* Helps with performance */
+    transform: translateZ(0); /* Forces GPU acceleration */
+    will-change: filter, opacity; /* Hints to browser to optimize these properties */
   }
   
   .placeholder {
@@ -278,6 +311,17 @@
     }
     to {
       transform: rotate(360deg);
+    }
+  }
+  
+  /* Reduced motion settings */
+  @media (prefers-reduced-motion: reduce) {
+    img {
+      transition: none;
+    }
+    
+    .loading-spinner {
+      animation-duration: 2s; /* Slower animation */
     }
   }
 </style>

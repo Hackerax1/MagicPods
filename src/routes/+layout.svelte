@@ -8,6 +8,8 @@
 	import { initializeAppShortcuts } from '$lib/utils/keyboard';
 	import { initOfflineSupport } from '$lib/utils/offline';
 	import { getRoute } from '$lib/utils/routes';
+	// Import module preloading utilities
+	import { preloadCriticalModules, preloadRouteModules } from '$lib/utils/modulePreload';
 	import OfflineIndicator from '$lib/components/ui/OfflineIndicator.svelte';
 	import ToastContainer from '$lib/components/ui/ToastContainer.svelte';
 
@@ -18,6 +20,11 @@
 	user.subscribe((value: User | null) => {
 		currentUser = value;
 	});
+
+	// Track page navigation to preload route-specific modules
+	$: if ($page && $page.url && $page.url.pathname) {
+		preloadRouteModules($page.url.pathname);
+	}
 
 	// Toggle mobile menu
 	function toggleMenu() {
@@ -30,6 +37,9 @@
 		
 		// Initialize offline support
 		initOfflineSupport();
+		
+		 // Initialize module preloading
+		preloadCriticalModules();
 		
 		// Check auth status on mount
 		try {

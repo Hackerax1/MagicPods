@@ -10,8 +10,9 @@
 <script lang="ts">
   export let decks;
   import { onMount } from 'svelte';
+  // Remove static import of DeckBuilder
+  // import DeckBuilder from '$lib/components/DeckBuilder.svelte';
   import DeckList from '$lib/components/DeckList.svelte';
-  import DeckBuilder from '$lib/components/DeckBuilder.svelte';
   import DeckStats from '$lib/components/DeckStats.svelte';
   import DeckExport from '$lib/components/DeckExport.svelte';
   import DeckTabs from '$lib/components/DeckTabs.svelte';
@@ -25,6 +26,10 @@
   let showScanner = false;
   let CardScannerComponent: any;
   
+  // Add DeckBuilder dynamic import
+  let showDeckBuilder = false;
+  let DeckBuilderComponent: any;
+  
   // Dynamically import CardScanner only when needed
   function loadCardScanner() {
     if (!showScanner) {
@@ -36,15 +41,52 @@
       showScanner = false;
     }
   }
+  
+  // Dynamically import DeckBuilder when needed
+  function loadDeckBuilder() {
+    if (!showDeckBuilder && !DeckBuilderComponent) {
+      showDeckBuilder = true;
+      import('$lib/components/DeckBuilder.svelte').then(module => {
+        DeckBuilderComponent = module.default;
+      });
+    } else {
+      showDeckBuilder = !showDeckBuilder;
+    }
+  }
+  
+  // Load DeckBuilder by default on mount
+  onMount(() => {
+    loadDeckBuilder();
+  });
 </script>
 
 <div class="container mx-auto px-4 py-6">
   <div class="flex justify-between items-center mb-6">
     <h1 class="text-2xl font-bold">Deck Builder</h1>
-    <Button on:click={loadCardScanner} variant="primary">
-      {showScanner ? 'Hide Scanner' : 'Show Card Scanner'}
-    </Button>
+    <div class="flex space-x-3">
+      <Button on:click={loadDeckBuilder} variant={showDeckBuilder ? "outline" : "primary"}>
+        {showDeckBuilder ? 'Hide Deck Builder' : 'Show Deck Builder'}
+      </Button>
+      <Button on:click={loadCardScanner} variant="primary">
+        {showScanner ? 'Hide Scanner' : 'Show Card Scanner'}
+      </Button>
+    </div>
   </div>
+  
+  {#if showDeckBuilder}
+    <div class="mb-8">
+      {#if DeckBuilderComponent}
+        <svelte:component this={DeckBuilderComponent} />
+      {:else}
+        <div class="p-4 text-center">
+          <div class="inline-block animate-spin h-8 w-8 border-4 border-indigo-500 border-t-transparent rounded-full" role="status">
+            <span class="sr-only">Loading...</span>
+          </div>
+          <p class="mt-2 text-gray-600">Loading deck builder...</p>
+        </div>
+      {/if}
+    </div>
+  {/if}
   
   {#if showScanner}
     <div class="mb-8">
