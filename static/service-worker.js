@@ -62,7 +62,12 @@ function isApiRoute(url) {
 
 // Function to check if a request is for a card image from Scryfall or similar
 function isCardImage(url) {
-  return url.includes('scryfall.com') || url.includes('gatherer.wizards.com');
+  try {
+    const parsedUrl = new URL(url);
+    return parsedUrl.host === 'scryfall.com' || parsedUrl.host === 'gatherer.wizards.com';
+  } catch (e) {
+    return false;
+  }
 }
 
 // Fetch event - handle network requests
