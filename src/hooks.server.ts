@@ -2,9 +2,30 @@
 const isGitHubPages = process.env.GITHUB_PAGES === 'true';
 
 import type { Handle } from '@sveltejs/kit';
+import { handleAuth } from '$lib/server/utils/middleware';
+import { checkJwtConfig } from '$lib/server/auth-helper';
+import { env } from '$env/dynamic/private';
+
+// Add type declaration for custom global property
+declare global {
+    var __bulkDataUpdatesInitialized: boolean | undefined;
+}
+
+// Check JWT configuration on startup
+const jwtConfigValid = checkJwtConfig();
+if (!jwtConfigValid) {
+    console.error('JWT configuration is invalid. Please check your environment variables.');
+}
 
 // Skip all server-side functionality when building for GitHub Pages
 export const handle: Handle = async ({ event, resolve }) => {
+    const path = event.url.pathname;
+
+    // Skip auth for public paths
+    if (path === '/' || path.startsWith('/static/') || path.startsWith('/_app/') || path === '/favicon.ico') {
+        return resolve(event);
+    }
+
     if (!isGitHubPages) {
         try {
             const { handleAuth } = await import('./lib/server/utils/middleware');

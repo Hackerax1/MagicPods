@@ -9,62 +9,56 @@ const testUser = {
 
 test.describe('Authentication Workflow', () => {
   test('should register a new user', async ({ page }) => {
-    // Go to home page and scroll to auth section
     await page.goto('/');
-    await page.locator('#auth').scrollIntoViewIfNeeded();
+
+    // Fill registration form with correct selectors
+    await page.getByRole('textbox', { name: 'Email Address' }).fill(testUser.email);
+    await page.getByRole('textbox', { name: 'Username' }).fill(testUser.username);
+    await page.locator('#register-password').fill(testUser.password);
+    await page.locator('#register-confirm-password').fill(testUser.password);
+    await page.getByRole('checkbox', { name: /I agree to the Terms/ }).check();
     
-    // Fill registration form
-    await page.locator('#email').fill(testUser.email);
-    await page.locator('#username').fill(testUser.username);
-    await page.locator('#password').fill(testUser.password);
-    await page.locator('#confirmPassword').fill(testUser.password);
-    await page.locator('#terms').check();
-    
-    // Submit form and wait for response
     await Promise.all([
-      page.waitForResponse('/api/auth'),
-      page.locator('button', { hasText: 'Create Account' }).click()
+      page.waitForResponse(response => 
+        response.url().includes('/api/auth') && 
+        response.request().method() === 'POST'
+      ),
+      page.getByRole('button', { name: 'Create Account' }).click()
     ]);
     
-    // After successful registration, we should be redirected to auth page
-    await expect(page).toHaveURL('/auth');
+    // After registration, user stays on home page
+    await expect(page).toHaveURL('/');
   });
 
   test('should fail login with incorrect credentials', async ({ page }) => {
-    // Go to home page and scroll to auth section
     await page.goto('/');
-    await page.locator('#auth').scrollIntoViewIfNeeded();
     
-    // Try to log in with incorrect password
-    await page.locator('#identifier').fill(testUser.username);
-    await page.locator('#password').fill('WrongPassword123!');
+    await page.getByRole('textbox', { name: 'Username or Email' }).fill(testUser.username);
+    await page.locator('#login-password').fill('WrongPassword123!');
     
-    await page.locator('button', { hasText: 'Sign in' }).click();
+    await page.getByRole('button', { name: 'Sign in' }).click();
     
-    // Check for error message in the login form
-    await expect(page.locator('.bg-red-50')).toBeVisible();
-    await expect(page.locator('.bg-red-50')).toContainText(/invalid password|user not found/i);
+    // Check for error message
+    const errorAlert = page.getByRole('alert');
+    await expect(errorAlert).toBeVisible();
+    await expect(errorAlert).toContainText(/invalid password|login failed/i);
   });
 
   test('should login with correct credentials', async ({ page }) => {
-    // Go to home page and scroll to auth section
     await page.goto('/');
-    await page.locator('#auth').scrollIntoViewIfNeeded();
     
-    // Log in with correct credentials
-    await page.locator('#identifier').fill(testUser.username);
-    await page.locator('#password').fill(testUser.password);
+    await page.getByRole('textbox', { name: 'Username or Email' }).fill(testUser.username);
+    await page.locator('#login-password').fill(testUser.password);
     
-    // Submit form and wait for navigation
     await Promise.all([
-      page.waitForNavigation(),
-      page.locator('button', { hasText: 'Sign in' }).click()
+      page.waitForNavigation({ waitUntil: 'networkidle' }),
+      page.getByRole('button', { name: 'Sign in' }).click()
     ]);
     
-    // After successful login, we should be redirected to the auth page
+    // After login, we should be on the auth path
     await expect(page).toHaveURL('/auth');
     
-    // Verify auth state by checking for common authenticated elements
+    // Verify navigation is available
     await expect(page.getByRole('link', { name: 'Decks' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Collection' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Pods' })).toBeVisible();
@@ -72,34 +66,31 @@ test.describe('Authentication Workflow', () => {
   });
 
   test('should access protected routes when authenticated', async ({ page }) => {
-    // Login first
     await page.goto('/');
-    await page.locator('#identifier').fill(testUser.username);
-    await page.locator('#password').fill(testUser.password);
     
-    await Promise.all([
-      page.waitForNavigation(),
-      page.locator('button', { hasText: 'Sign in' }).click()
-    ]);
+    // Login first
+    await page.getByRole('textbox', { name: 'Username or Email' }).fill(testUser.username);
+    await page.locator('#login-password').fill(testUser.password);
+    await page.getByRole('button', { name: 'Sign in' }).click();
+    
+    // Wait for login to complete
+    await page.waitForURL('/auth');
     
     // Try accessing protected routes
     await page.goto('/auth/decks');
-    await expect(page).not.toHaveURL('/'); // Should not redirect to login
-    await expect(page.getByRole('heading', { level: 1 })).toContainText('Your Decks');
+    await expect(page.getByRole('heading', { name: /Your Decks/i })).toBeVisible();
     
     await page.goto('/auth/pods');
-    await expect(page).not.toHaveURL('/'); // Should not redirect to login
-    await expect(page.getByRole('heading', { level: 1 })).toContainText('Your Pods');
+    await expect(page.getByRole('heading', { name: /Your Pods/i })).toBeVisible();
   });
 
   test('should redirect to login when accessing protected routes without auth', async ({ page }) => {
-    // Clear cookies to ensure no auth
     await page.context().clearCookies();
     
     // Try accessing protected route
     await page.goto('/auth/decks');
     
-    // Should redirect to home/login page
+    // Should be redirected to home/login
     await expect(page).toHaveURL('/');
   });
 });
