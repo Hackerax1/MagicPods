@@ -13,6 +13,16 @@ services:
       - db
       - redis
       - card-scanner
+    command: >
+      sh -c "echo '
+      🚀 Application starting...
+      
+      =====================================
+      🌐 App will be available at:
+      📍 http://localhost:5173
+      =====================================
+      
+      ' && npm run dev -- --host"
 
   card-scanner:
     build: ./card_scanner
