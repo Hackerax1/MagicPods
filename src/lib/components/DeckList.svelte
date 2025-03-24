@@ -173,13 +173,17 @@
     // Add passive touch event listeners
     const cardElements = document.querySelectorAll('[data-card-id]');
     cardElements.forEach(element => {
-      element.addEventListener('touchmove', handleTouchMove, { passive: false });
+      element.addEventListener('touchmove', ((e: Event) => {
+        handleTouchMove(e as TouchEvent);
+      }) as EventListener, { passive: false });
     });
     
     return () => {
       // Clean up listeners
       cardElements.forEach(element => {
-        element.removeEventListener('touchmove', handleTouchMove);
+        element.removeEventListener('touchmove', ((e: Event) => {
+          handleTouchMove(e as TouchEvent);
+        }) as EventListener);
       });
     };
   });
@@ -212,74 +216,83 @@
       {#each Object.entries(sortedDeck()) as [category, cards]}
         <div class="card-group">
           <h3 class="text-lg font-medium text-gray-900 mb-2">{category} ({cards.length})</h3>
-          <div class="space-y-2">
+          <ul class="space-y-2" role="list">
             {#each cards as card}
-              <div 
-                class="flex items-center bg-white p-2 rounded-lg shadow-sm hover:shadow-md transition-shadow relative {activeCardId === card.id ? 'active-card' : ''}"
-                draggable="true"
-                on:dragstart={(e) => handleDragStart(e, card)}
-                on:dragover={(e) => handleDragOver(e, card)}
-                on:drop={(e) => handleDrop(e, card)}
-                on:dragend={handleDragEnd}
-                on:keydown={(e) => handleKeyDown(e, card)}
-                on:touchstart={(e) => handleTouchStart(e, card)}
-                on:touchend={(e) => handleTouchEnd(e, card)}
+              <li 
+                class="group block w-full bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow relative {activeCardId === card.id ? 'active-card' : ''}"
                 role="listitem"
-                tabindex="0"
                 data-card-id={card.id}
-                aria-label="{card.name}, {card.type_line}, Quantity: {card.quantity || 1}"
               >
-                <div class="flex-shrink-0 mr-3 w-16 h-16 relative">
-                  {#if card.image_uris}
-                    <CardImage 
-                      cardId={card.id}
-                      imageUrl={card.image_uris.art_crop}
-                      altText={card.name}
-                      loading="lazy"
-                      artOnly={true}
-                      fetchPriority="low"
-                      sizes="(max-width: 640px) 64px, 80px"
-                    />
-                  {/if}
-                </div>
-                <div class="flex-1 min-w-0 pr-2">
-                  <p class="text-sm font-medium text-gray-900 truncate">{card.name}</p>
-                  <p class="text-xs text-gray-500 truncate">{card.type_line}</p>
-                  <p class="text-xs text-indigo-600 md:hidden">Swipe left to remove, right to add</p>
-                </div>
-                <div 
-                  class="flex items-center gap-1 ml-auto"
-                  role="group"
-                  aria-label="Card quantity controls"
+                <div
+                  class="w-full flex items-center p-2"
+                  draggable="true"
+                  on:dragstart={(e) => handleDragStart(e, card)}
+                  on:dragover={(e) => handleDragOver(e, card)}
+                  on:drop={(e) => handleDrop(e, card)}
+                  on:dragend={handleDragEnd}
+                  on:keydown={(e) => handleKeyDown(e, card)}
+                  on:touchstart={(e) => handleTouchStart(e, card)}
+                  on:touchend={(e) => handleTouchEnd(e, card)}
+                  tabindex="0"
+                  role="button"
+                  aria-label="{card.name}, {card.type_line}, Quantity: {card.quantity || 1}"
+                  aria-roledescription="draggable card item"
+                  aria-grabbed={dragSource === card}
                 >
-                  <button 
-                    on:click={() => onRemoveCard(card)}
-                    class="p-1 rounded-full text-gray-400 hover:text-red-500 focus:outline-none focus:ring-2 focus:ring-red-500 touch-action-manipulation"
-                    aria-label="Remove one {card.name}"
+                  <div class="flex-shrink-0 mr-3 w-16 h-16 relative">
+                    {#if card.image_uris}
+                      <CardImage 
+                        cardId={card.id}
+                        imageUrl={card.image_uris.art_crop}
+                        altText={card.name}
+                        loading="lazy"
+                        artOnly={true}
+                        fetchPriority="low"
+                        sizes="(max-width: 640px) 64px, 80px"
+                      />
+                    {/if}
+                  </div>
+                  <div class="flex-1 min-w-0 pr-2">
+                    <p class="text-sm font-medium text-gray-900 truncate">{card.name}</p>
+                    <p class="text-xs text-gray-500 truncate">{card.type_line}</p>
+                    <p class="text-xs text-indigo-600 md:hidden">Swipe left to remove, right to add</p>
+                  </div>
+                  <div 
+                    class="flex items-center gap-1 ml-auto"
+                    role="group"
+                    aria-label="Card quantity controls"
                   >
-                    <svg class="h-6 w-6 md:h-5 md:w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                      <path fill-rule="evenodd" d="M5 10a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1z" clip-rule="evenodd" />
-                    </svg>
-                  </button>
-                  <span 
-                    class="text-sm font-medium min-w-[1.5rem] text-center"
-                    aria-label="Quantity"
-                  >
-                    {card.quantity || 1}
-                  </span>
-                  <button 
-                    on:click={() => onAddCard(card)}
-                    class="p-1 rounded-full text-gray-400 hover:text-green-500 focus:outline-none focus:ring-2 focus:ring-green-500 touch-action-manipulation"
-                    aria-label="Add one more {card.name}"
-                  >
-                    <svg class="h-6 w-6 md:h-5 md:w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                      <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
-                    </svg>
-                  </button>
+                    <button 
+                      on:click={() => onRemoveCard(card)}
+                      type="button"
+                      class="p-1 rounded-full text-gray-400 hover:text-red-500 focus:outline-none focus:ring-2 focus:ring-red-500 touch-action-manipulation"
+                      aria-label="Remove one {card.name}"
+                    >
+                      <svg class="h-6 w-6 md:h-5 md:w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M5 10a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1z" clip-rule="evenodd" />
+                      </svg>
+                    </button>
+                    <span 
+                      class="text-sm font-medium min-w-[1.5rem] text-center"
+                      aria-label="Quantity"
+                    >
+                      {card.quantity || 1}
+                    </span>
+                    <button 
+                      on:click={() => onAddCard(card)}
+                      type="button"
+                      class="p-1 rounded-full text-gray-400 hover:text-green-500 focus:outline-none focus:ring-2 focus:ring-green-500 touch-action-manipulation"
+                      aria-label="Add one more {card.name}"
+                    >
+                      <svg class="h-6 w-6 md:h-5 md:w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
-              </div>
+              </li>
             {/each}
-          </div>
+          </ul>
         </div>
       {/each}
     </div>

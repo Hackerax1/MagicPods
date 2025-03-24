@@ -13,7 +13,7 @@ const config = {
 		adapter: adapter({
 			pages: 'build',
 			assets: 'build',
-			fallback: '404.html',  // Changed to 404.html for GitHub Pages
+			fallback: false,  // Disable SvelteKit's fallback generation
 			precompress: false,
 			strict: false
 		}),
@@ -24,8 +24,12 @@ const config = {
 			$lib: resolve('./src/lib')
 		},
 		prerender: {
-			handleHttpError: () => {
-				// Ignore all HTTP errors during prerendering
+			handleHttpError: ({ status }) => {
+				// Don't fail the build on authentication errors
+				if (status === 401 || status === 403) {
+					return;
+				}
+				// Still handle other HTTP errors
 				return;
 			},
 			handleMissingId: 'ignore',

@@ -37,9 +37,10 @@
 
 {#if visible}
   <div 
-    class="fixed bottom-4 right-4 z-50 transition-transform duration-300 ease-in-out {animationState === 'active' ? 'scale-110' : 'scale-100'}"
+    class="fixed bottom-4 right-4 z-50 transition-transform duration-300 ease-in-out"
     class:translate-y-0={$offlineStatus !== 'online'}
     class:translate-y-24={$offlineStatus === 'online'}
+    class:animate-pulse={animationState === 'active'}
     role="status"
     aria-live="polite"
   >
@@ -86,8 +87,8 @@
       transform: scale(1.05);
     }
   }
-  
-  .active {
+
+  .animate-pulse {
     animation: pulse 1s ease-in-out;
   }
 </style>
