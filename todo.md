@@ -20,9 +20,9 @@
     * [ ] Set up automated builds
     * [ ] Document deployment and usage instructions
 *   [ ] **Linode Deployment Setup:** Deploy the full application stack on Ubuntu Linode server.
-    * [ ] SSH setup and server preparation
-    * [ ] Install Docker and Docker Compose
-    * [ ] Clone repository to server
+    * [X] SSH setup and server preparation
+    * [X] Install Docker and Docker Compose
+    * [X] Clone repository to server
     * [ ] Create environment file with all required variables
     * [ ] Deploy with Docker Compose
     * [ ] Configure networking (firewall ports: 80/443, 5173, 5000)
