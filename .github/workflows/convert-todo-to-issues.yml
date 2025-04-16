@@ -1,0 +1,79 @@
+name: Convert TODO.md to GitHub Issues
+
+on:
+  workflow_dispatch:
+    inputs:
+      archive_completed:
+        description: 'Archive completed tasks/subtasks'
+        required: false
+        default: false
+
+jobs:
+  convert-todo:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Parse TODO.md and create GitHub issues
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        node <<EOF
+        const fs = require('fs');
+        const { Octokit } = require('@octokit/rest');
+
+        const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
+        const owner = process.env.GITHUB_REPOSITORY.split('/')[0];
+        const repo = process.env.GITHUB_REPOSITORY.split('/')[1];
+
+        const todoFile = 'todo.md';
+        const content = fs.readFileSync(todoFile, 'utf-8');
+        const tasks = content.split(/\n(?=\* )/g).map(task => task.trim());
+
+        (async () => {
+          for (const task of tasks) {
+            const [title, ...body] = task.split('\n');
+            const issueTitle = title.replace(/^\* /, '').trim();
+            const issueBody = body.join('\n').trim();
+
+            await octokit.issues.create({
+              owner,
+              repo,
+              title: issueTitle,
+              body: issueBody || 'No additional details provided.',
+            });
+          }
+        })();
+        EOF
+
+    - name: Archive completed tasks (if enabled)
+      if: ${{ inputs.archive_completed == 'true' }}
+      run: |
+        node <<EOF
+        const fs = require('fs');
+
+        const todoFile = 'todo.md';
+        const archiveFile = 'todo-archive.md';
+        const content = fs.readFileSync(todoFile, 'utf-8');
+        const tasks = content.split(/\n(?=\* )/g);
+
+        const [completed, remaining] = tasks.reduce((acc, task) => {
+          if (task.includes('[x]')) acc[0].push(task);
+          else acc[1].push(task);
+          return acc;
+        }, [[], []]);
+
+        fs.writeFileSync(todoFile, remaining.join('\n'));
+        fs.appendFileSync(archiveFile, completed.join('\n') + '\n');
+        EOF
