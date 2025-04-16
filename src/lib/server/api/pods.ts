@@ -34,7 +34,7 @@ export async function POST(event: RequestEvent) {
 
     const { action, podName, podId, newUserId } = body as any;
 
-    if (!action || (action !== 'createPod' && action !== 'addUserToPod')) {
+    if (!action || (action !== 'createPod' && action !== 'addUserToPod' && action !== 'removeUserFromPod' && action !== 'updatePodName')) {
       throw new ApiError('Invalid action', 400, ErrorCodes.INVALID_INPUT);
     }
 
@@ -50,7 +50,7 @@ export async function POST(event: RequestEvent) {
         userId: user.id
       };
 
-      const result = await db.transaction(async (tx) => {
+      const result = await db.transaction(async (tx: any) => {
         const [newPodResult] = await tx.insert(pod).values(newPod).returning();
         await tx.insert(podMembership).values({ 
           id: uuidv4(), 
@@ -101,6 +101,51 @@ export async function POST(event: RequestEvent) {
 
       const response = successResponse({ success: true }, undefined, version);
       return compressResponse(response, event);
+
+    } else if (action === 'removeUserFromPod') {
+      const { podId, userId: removeUserId } = body as any;
+      if (!podId || !removeUserId) {
+        throw new ApiError('Pod ID and user ID are required', 400, ErrorCodes.MISSING_REQUIRED_FIELD);
+      }
+      // Verify pod exists
+      const [podDetails] = await db.select().from(pod).where(eq(pod.id, podId));
+      if (!podDetails) throw new ApiError('Pod not found', 404, ErrorCodes.NOT_FOUND);
+      const isOwner = podDetails.userId === user.id;
+      const isSelf = removeUserId === user.id;
+      if (!isSelf && !isOwner) throw new ApiError('Access forbidden', 403, ErrorCodes.FORBIDDEN);
+      // Get current members
+      const podUsers = await db.select().from(podMembership).where(eq(podMembership.podId, podId));
+      // Perform removal and contingency in a transaction
+      await db.transaction(async (tx: any) => {
+        await tx.delete(podMembership)
+          .where(and(eq(podMembership.podId, podId), eq(podMembership.userId, removeUserId)));
+        // If owner is leaving, transfer or delete pod
+        if (removeUserId === podDetails.userId) {
+          const remaining = podUsers.filter((p: any) => p.userId !== removeUserId);
+          if (remaining.length > 0) {
+            await tx.update(pod)
+              .set({ userId: remaining[0].userId })
+              .where(eq(pod.id, podId));
+          } else {
+            await tx.delete(pod).where(eq(pod.id, podId));
+          }
+        }
+      });
+      const response = successResponse({ success: true }, undefined, version);
+      return compressResponse(response, event);
+
+    } else if (action === 'updatePodName') {
+      const { podId, podName: newName } = body as any;
+      if (!podId || !newName) {
+        throw new ApiError('Pod ID and new name are required', 400, ErrorCodes.MISSING_REQUIRED_FIELD);
+      }
+      const sanitized = sanitizeString(newName);
+      const [podDetails] = await db.select().from(pod).where(eq(pod.id, podId));
+      if (!podDetails) throw new ApiError('Pod not found', 404, ErrorCodes.NOT_FOUND);
+      if (podDetails.userId !== user.id) throw new ApiError('Access forbidden', 403, ErrorCodes.FORBIDDEN);
+      await db.update(pod).set({ name: sanitized }).where(eq(pod.id, podId));
+      const response = successResponse({ success: true, name: sanitized }, undefined, version);
+      return compressResponse(response, event);
     }
     
     throw new ApiError('Invalid action', 400, ErrorCodes.INVALID_INPUT);
@@ -143,7 +188,7 @@ export async function GET(event: RequestEvent) {
       .from(podMembership)
       .where(eq(podMembership.podId, podId));
 
-    const isUserInPod = podUsers.some(pu => pu.userId === user.id);
+    const isUserInPod = podUsers.some((pu: any) => pu.userId === user.id);
     if (!isUserInPod) {
       throw new ApiError('Access forbidden', 403, ErrorCodes.FORBIDDEN);
     }

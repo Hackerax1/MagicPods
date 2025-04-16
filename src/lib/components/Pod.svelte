@@ -1,7 +1,9 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { get } from 'svelte/store';
-  import { getUserPods, getPodDecks, inviteUserToPod, createDeck, removeUserFromPod, removeDeckFromPod, updateWinLoss } from '$lib/server/db';
+  import { createDeck, removeDeckFromPod, updateWinLoss } from '$lib/server/db';
+  import { user } from '$lib/stores/userStore';
+  import { fetchUserPods, fetchPodMembers, addUserToPod, removeUserFromPod as apiRemoveUserFromPod, updatePodName } from '$lib/client/api';
   import { tradeStore } from '../stores/tradeStore';
   import TradeNotifications from './TradeNotifications.svelte';
   
@@ -20,7 +22,7 @@
   let deckId = '';
   let win = 0;
   let loss = 0;
-  let userId = 'currentUserId'; // Replace with actual user ID
+  let currentUser: any;
 
   let selectedCards: any[] = [];
   let participants: any[] = [];
@@ -28,10 +30,13 @@
   let selectedParticipants: string[] = [];
   let error = '';
 
+  user.subscribe(value => { currentUser = value; });
+
   onMount(async () => {
-    pods = await getUserPods(userId);
+    if (!currentUser?.id) return;
+    pods = await fetchUserPods(currentUser.id);
     for (let pod of pods) {
-      podDecks[pod.id] = await getPodDecks(pod.id);
+      podDecks[pod.id] = await fetchPodDecks ? await fetchPodDecks(pod.id) : [];
       podWinLoss[pod.id] = { win: 0, loss: 0 }; // Initialize win/loss
     }
     await loadPodParticipants();
@@ -45,9 +50,10 @@
     if (pods.some(p => p.id === newUser)) return;
     
     try {
-      await inviteUserToPod(pods[0].id, newUser); // Assuming adding to the first pod
+      await addUserToPod(pods[0].id, newUser);
       newUser = '';
       error = '';
+      await loadPodParticipants();
     } catch (err) {
       error = "Failed to add user to pod";
       console.error(err);
@@ -55,7 +61,8 @@
   };
 
   const handleRemoveFromPod = async (userId: string) => {
-    await removeUserFromPod(pods[0].id, userId); // Assuming removing from the first pod
+    await apiRemoveUserFromPod(pods[0].id, userId);
+    await loadPods();
   };
 
   const handleAddDeckToPod = async () => {
@@ -65,7 +72,7 @@
     }
     
     try {
-      const deck = await createDeck(newDeck, userId);
+      const deck = await createDeck(newDeck, currentUser.id);
       podDecks[pods[0].id].push(deck); // Assuming adding to the first pod
       newDeck = '';
       error = '';
@@ -98,11 +105,8 @@
 
   async function loadPodParticipants() {
     try {
-      const response = await fetch(`/api/pods/${pods[0]?.id}/members`);
-      const data = await response.json();
-      if (data.success) {
-        participants = data.members;
-      }
+      const data = await fetchPodMembers(pods[0]?.id);
+      participants = data.members || data;
     } catch (error) {
       console.error('Failed to load pod participants:', error);
     } finally {
@@ -147,6 +151,15 @@
       console.error('Failed to create trade:', err);
     }
   }
+
+  const handleRenamePod = async (podId: string, newName: string) => {
+    try {
+      await updatePodName(podId, newName);
+      await loadPods();
+    } catch (err) {
+      console.error('Rename failed', err);
+    }
+  };
 </script>
 
 <main class="container mx-auto px-4 py-6">
