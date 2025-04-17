@@ -34,7 +34,7 @@
 		"@playwright/test": "^1.51.1",
 		"@sveltejs/adapter-node": "^0.0.18",
 		"@sveltejs/adapter-static": "^0.0.17",
-		"@sveltejs/kit": "^2.20.2",
+		"@sveltejs/kit": "^2.20.6",
 		"@sveltejs/vite-plugin-svelte": "^5.0.0",
 		"@testing-library/svelte": "^5.2.7",
 		"@types/bcryptjs": "^2.4.6",
