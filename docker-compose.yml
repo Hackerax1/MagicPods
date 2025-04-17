@@ -93,6 +93,23 @@ services:
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
       - GF_USERS_ALLOW_SIGN_UP=false
 
+  static-server:
+    build: .
+    ports:
+      - "80:80"
+    environment:
+      - NODE_ENV=production
+    depends_on:
+      - app
+    command: >
+      sh -c "echo '
+      🚀 Static server starting...
+      =====================================
+      🌐 App will be available at:
+      📍 http://localhost
+      =====================================
+      ' && nginx -g 'daemon off;'"
+
 volumes:
   postgres_data:
   redis_data:

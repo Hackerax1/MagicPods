@@ -1,46 +1,26 @@
-FROM node:20-alpine as builder
+# Stage 1: Build the application
+FROM node:23-slim AS builder
 
 WORKDIR /app
 
-# Install dependencies
-COPY package*.json ./
-RUN npm ci
+# Copy package files and install dependencies
+COPY package.json package-lock.json ./
+RUN npm install
 
-# Copy source code
+# Copy the rest of the application code
 COPY . .
 
-# Set environment variables for SvelteKit build
-ENV VITE_SVELTEKIT_APP_ROOT=/app
-ENV NODE_ENV=production
-
-# Build the application
+# Build the application for production
 RUN npm run build
 
-# Production stage
-FROM node:20-alpine
+# Stage 2: Serve the application using Nginx
+FROM nginx:alpine
 
-WORKDIR /app
+# Copy built files from the builder stage
+COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Create a non-root user
-RUN addgroup -S appgroup && \
-    adduser -S appuser -G appgroup
+# Expose port 80 for the web server
+EXPOSE 80
 
-# Copy built assets and necessary files
-COPY --from=builder --chown=appuser:appgroup /app/build ./build
-COPY --from=builder --chown=appuser:appgroup /app/package.json ./package.json
-COPY --from=builder --chown=appuser:appgroup /app/node_modules ./node_modules
-
-# Switch to non-root user
-USER appuser
-
-# Add healthcheck
-HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:3000/health || exit 1
-
-EXPOSE 3000
-
-ENV NODE_ENV=production
-ENV HOST=0.0.0.0
-ENV PORT=3000
-
-CMD ["node", "build"]
+# Start Nginx
+CMD ["nginx", "-g", "daemon off;"]

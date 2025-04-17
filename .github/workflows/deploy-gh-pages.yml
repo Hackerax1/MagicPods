@@ -42,6 +42,22 @@ jobs:
           NODE_ENV: production
           GITHUB_PAGES: true
       
+      - name: Build Docker image
+        run: docker build -t magicpods-static .
+
+      - name: Extract static files
+        run: |
+          container_id=$(docker create magicpods-static)
+          docker cp $container_id:/usr/share/nginx/html ./build
+          docker rm $container_id
+
+      - name: Verify extracted files
+        run: |
+          echo "Contents of build directory:"
+          ls -la build/
+          echo "Contents of build/index.html:"
+          cat build/index.html | head -n 20
+
       - name: Create GitHub Pages files
         run: |
           # Ensure .nojekyll exists (prevents GitHub Pages from using Jekyll)

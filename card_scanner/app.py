@@ -28,6 +28,7 @@ import platform
 import psutil
 import logging
 import backoff
+import requests
 
 # Initialize Flask
 app = Flask(__name__)
@@ -223,16 +224,41 @@ class LiveScannerSession:
                 # Apply preprocessing to improve OCR quality
                 gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
                 _, thresh = cv2.threshold(gray, 150, 255, cv2.THRESH_BINARY)
-                
+
                 # Apply OCR
                 img = Image.fromarray(thresh)
                 text = pytesseract.image_to_string(img)
-                
+
                 if text and text.strip():
                     self.last_scan_result = text.strip()
                     self.scan_count += 1
                     self.error_count = 0  # Reset error count on success
                     self.consecutive_frames_processed += 1
+
+                    # Send scanned card details to the backend
+                    card_details = {"name": self.last_scan_result}
+                    user_id = self.user_id
+                    response = requests.post(
+                        f"{os.getenv('BACKEND_URL')}/api/collection/add", 
+                        json={"userId": user_id, "card": card_details},
+                        headers={"Authorization": f"Bearer {os.getenv('API_TOKEN')}"}
+                    )
+
+                    if response.status_code == 200:
+                        logger.info(
+                            "card_added_to_collection",
+                            user_id=self.user_id,
+                            card_name=self.last_scan_result
+                        )
+                    else:
+                        logger.error(
+                            "failed_to_add_card",
+                            user_id=self.user_id,
+                            card_name=self.last_scan_result,
+                            status_code=response.status_code,
+                            response=response.text
+                        )
+
                     logger.info(
                         "live_scan_success",
                         user_id=self.user_id,
@@ -253,7 +279,7 @@ class LiveScannerSession:
                 error_count=self.error_count
             )
             SCAN_ERRORS.labels(error_type='frame_processing').inc()
-            
+
             if self.error_count > 10:  # Stop session if too many errors
                 self.stop()
                 
